@@ -78,30 +78,30 @@ enum DEBUG_LEVEL {
  * Command line options.
  */
 static struct option longopts[] = {
-    { "verbose",          no_argument,            NULL,           'v' }, ///< Verbose mode, can be specified multiple times (optional)
-    { "debug",            no_argument,            NULL,           'd' }, ///< Debug mode (optional)
+    { "verbose",               no_argument,            NULL,           'v' }, ///< Verbose mode, can be specified multiple times (optional)
+    { "debug",                 no_argument,            NULL,           'd' }, ///< Debug mode (optional)
 
-    { "laddr",            required_argument,      NULL,           'a' }, ///< Listen address (optional)
-    { "lport",            required_argument,      NULL,           'b' }, ///< Listen port (required)
-    { "lif",              required_argument,      NULL,           'c' }, ///< Listen interface (optional)
+    { "listen-address",        required_argument,      NULL,           'a' }, ///< Listen address (optional)
+    { "listen-port",           required_argument,      NULL,           'b' }, ///< Listen port (required)
+    { "listen-interface",      required_argument,      NULL,           'c' }, ///< Listen interface (optional)
 
-    { "caddr",            required_argument,      NULL,           'g' }, ///< Connect address (required)
-    { "chost",            required_argument,      NULL,           'h' }, ///< Connect host (required)
-    { "cport",            required_argument,      NULL,           'i' }, ///< Connect port (required)
+    { "connect-address",       required_argument,      NULL,           'g' }, ///< Connect address (required)
+    { "connect-host",          required_argument,      NULL,           'h' }, ///< Connect host (required)
+    { "connect-port",          required_argument,      NULL,           'i' }, ///< Connect port (required)
 
-    { "saddr",            required_argument,      NULL,           'm' }, ///< Send packets address (optional)
-    { "sport",            required_argument,      NULL,           'n' }, ///< Send packets port (optional)
-    { "sif",              required_argument,      NULL,           'o' }, ///< Send packets interface (optional)
+    { "send-address",          required_argument,      NULL,           'm' }, ///< Send packets address (optional)
+    { "send-port",             required_argument,      NULL,           'n' }, ///< Send packets port (optional)
+    { "send-interface",        required_argument,      NULL,           'o' }, ///< Send packets interface (optional)
 
-    { "lstrict",          no_argument,            NULL,           'x' }, ///< Listener only receives packets from the same endpoint
-    { "cstrict",          no_argument,            NULL,           'y' }, ///< Sender only receives packets from the connect address
+    { "listen-address-strict", no_argument,            NULL,           'x' }, ///< Listener only receives packets from the same endpoint
+    { "connect-address-strict",no_argument,            NULL,           'y' }, ///< Sender only receives packets from the connect address
 
-    { "lsaddr",           required_argument,      NULL,           'k' }, ///< Connect expects packets from this source address
-    { "lsport",           required_argument,      NULL,           'l' }, ///< Connect expects packets from this source port
+    { "listen-sender-address", required_argument,      NULL,           'k' }, ///< Connect expects packets from this source address
+    { "listen-sender-port",    required_argument,      NULL,           'l' }, ///< Connect expects packets from this source port
 
-    { "ignore-errors",    no_argument,            NULL,           'z' }, ///< Ignore harmless recvfrom / sendto errors
+    { "ignore-errors",         no_argument,            NULL,           'z' }, ///< Ignore harmless recvfrom / sendto errors
 
-    { NULL,         0,                      NULL,           0 }
+    { NULL,                     0,                      NULL,           0 }
 };
 
 /**
@@ -116,36 +116,36 @@ void usage(const char *argv0, const char *message) {
         fprintf(stderr, "%s\n", message);
 
     fprintf(stderr, "Usage: %s\n", argv0);
-    fprintf(stderr, "          [--laddr <address>] --lport <port> [--lif <interface>]\n");
-    fprintf(stderr, "          --caddr <address> --cport <port>\n");
-    fprintf(stderr, "          [--saddr <address>] [--sport <port>] [--sif <interface>]\n");
-    fprintf(stderr, "          [--cstrict] [--lstrict]\n");
-    fprintf(stderr, "          [--lsaddr <address>] [--lsport <port>]\n");
+    fprintf(stderr, "          [--listen-address <address>] --listen-port <port> [--listen-interface <interface>]\n");
+    fprintf(stderr, "          --connect-address <address> | --connect-host <hostname> --connect-port <port>\n");
+    fprintf(stderr, "          [--send-address <address>] [--send-port <port>] [--send-interface <interface>]\n");
+    fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
+    fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors]\n");
     fprintf(stderr, "          [--verbose] [--debug]\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--verbose             Verbose mode, can be specified multiple times (optional)\n");
-    fprintf(stderr, "--debug               Debug mode (optional)\n");
+    fprintf(stderr, "--verbose                            Verbose mode, can be specified multiple times (optional)\n");
+    fprintf(stderr, "--debug                              Debug mode (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--laddr <address>     Listen address (optional)\n");
-    fprintf(stderr, "--lport <port>        Listen port (required)\n");
-    fprintf(stderr, "--lif <interface>     Listen interface name (optional)\n");
-    fprintf(stderr, "--lstrict             Only receive packets from the same source as the first packet (optional)\n");
+    fprintf(stderr, "--listen-address <address>           Listen address (optional)\n");
+    fprintf(stderr, "--listen-port <port>                 Listen port (required)\n");
+    fprintf(stderr, "--listen-interface <interface>       Listen interface name (optional)\n");
+    fprintf(stderr, "--listen-address-strict              Only receive packets from the same source as the first packet (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--caddr <address>     Connect address (required)\n");
-    fprintf(stderr, "--chost <address>     Connect host, overwrites caddr if both are specified (required)\n");
-    fprintf(stderr, "--cport <port>        Connect port (required)\n");
-    fprintf(stderr, "--cstrict             Only receive packets from the connect caddr / cport (optional)\n");
+    fprintf(stderr, "--connect-address <address>          Connect address (required)\n");
+    fprintf(stderr, "--connect-host <hostname>            Connect host, overwrites caddr if both are specified (required)\n");
+    fprintf(stderr, "--connect-port <port>                Connect port (required)\n");
+    fprintf(stderr, "--connect-address-strict             Only receive packets from the connect caddr / cport (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--saddr <address>     Send packets from address (optional)\n");
-    fprintf(stderr, "--sport <port>        Send packets from port (optional)\n");
-    fprintf(stderr, "--sif <interface>     Send packets from interface (optional)\n");
+    fprintf(stderr, "--send-address <address>             Send packets from address (optional)\n");
+    fprintf(stderr, "--send-port <port>                   Send packets from port (optional)\n");
+    fprintf(stderr, "--send-interface <interface>         Send packets from interface (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--lsaddr <address>    Listen address receives packets from this source address (optional)\n");
-    fprintf(stderr, "--lsport <port>       Listen port receives packets from this source port (optional)\n");
-    fprintf(stderr, "                      (must be set together, --lstrict is implied)\n");
+    fprintf(stderr, "--listen-sender-address <address>    Listen endpoint only accepts packets from this source address (optional)\n");
+    fprintf(stderr, "--listen-sender-port <port>          Listen endpoint only accepts packets from this source port (optional)\n");
+    fprintf(stderr, "                                     (must be set together, --listen-address-strict is implied)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--ignore-errors       Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional)\n");
+    fprintf(stderr, "--ignore-errors                      Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional)\n");
     fprintf(stderr, "\n");
 
     exit(EXIT_FAILURE);
@@ -476,6 +476,10 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
 
+    if (argc != 0) {
+        usage(argv0, "Unknown argument");
+    }
+
     if (s.lport == 0) {
         usage(argv0, "Listen port not specified");
     }
@@ -505,7 +509,7 @@ int main(int argc, char *argv[]) {
 
     DEBUG(DEBUG_LEVEL_INFO, "---- INFO ----");
 
-    DEBUG(DEBUG_LEVEL_ERROR, "Debug level: %d", debug_level);
+//    DEBUG(DEBUG_LEVEL_ERROR, "Debug level: %d", debug_level);
 
     DEBUG(DEBUG_LEVEL_INFO, "Listen address: %s", (s.laddr != NULL)?s.laddr:"ANY");
     DEBUG(DEBUG_LEVEL_INFO, "Listen port: %d", s.lport);

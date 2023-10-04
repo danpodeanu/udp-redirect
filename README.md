@@ -10,7 +10,7 @@ Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a dif
 
 ## Security
 
-Supports enforcing the packet source for all received packets.
+Supports enforcing the packet source for all received packets. This only provides modest security improvements as generating UDP packets is trivial.
 
 ## Compile
 
@@ -24,12 +24,25 @@ or
 
 ```
 ./udp-redirect \
-    --debug \
-    --laddr 192.168.1.32 --lport 51821 --lif en0 --lstrict \
-    --chost example.endpoint.net --cport 51822 --cstrict \
-    --sif utun5 \
-    --lsaddr 192.168.1.1 --lsport 51820 \
+    --listen-port 51821 \
+    --connect-host example.endpoint.net --connect-port 51822 \
     --ignore-errors
+```
+
+```
+./udp-redirect \
+    --debug \
+    --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0 --listen-address-strict \
+    --connect-host example.endpoint.net --connect-port 51822 --connect-address-strict \
+    --send-interface utun5 \
+    --listen-sender-address 192.168.1.1 --listen-sender-port 51820 \
+    --ignore-errors
+```
+
+```mermaid
+graph TD
+    A["Wireguard Client <br/><br/>Send from:<br/>IP: 192.168.1.1<br/>Port: 51820"] <--> B("Receive on:<br/>IP: 192.168.1.32 (--listen-address) (optional)<br/>Port: 51821 (--listen-port)<br/>Interface: en0 (--listen-interface) (optional)<br/><br/>Receive from: (optional)<br/>IP: 192.168.1.1 (--listen-sender-address) (optional)<br/>Port: 51820 (--listen-sender-port) (optional)<br/>Only receive from Wireguard Client (--listen-address-strict) (optional)<br/><br/>UDP Redirector<br/><br/>Send to:<br/>Host: example.endpoint.net (--connect-host)</br>Port: 51822 (--connect-port)<br/>Only receive from Wireguard Server (--connect-address-strict) (optional)<br/><br/>Send from:<br/>Interface: utun5 (--sender-interface (optional)<br/><br/>")
+    B <--> C["Listen on:<br/>Host: example.endpoint.net<br/>Port: 51822<br/><br/>Wireguard Server"]
 ```
 
 # Documentation
@@ -55,10 +68,10 @@ The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--laddr``` | address | *optional* | Listen address. |
-| ```--lport``` | port | *required* | Listen port. |
-| ```--lif``` | interface | *optional* | Listen interface name. |
-| ```--lstrict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```lstrict``` mode, only accept packets from the same source as the first packet. For added security, when specified, the ```lsaddr``` and ```lsport``` parameters set the sender endpoint and ```lstrict``` (e.g., the listsener endpoint is known and fixed). |
+| ```--listen-address``` | address | *optional* | Listen address. |
+| ```--listen-port``` | port | *required* | Listen port. |
+| ```--listen-interface``` | interface | *optional* | Listen interface name. |
+| ```--listen-address-strict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```listen-address-strict``` mode, only accept packets from the same source as the first packet, or the source specified by ```listen-sender-address``` and ```listen-sender-port```. |
 
 ## Connect
 
@@ -66,10 +79,10 @@ The UDP redirector sends packets here (e.g., to the wireguard server):
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--caddr``` | address | *required* | Connect address. |
-| ```--chost``` | address | *required* | Connect host, overwrites caddr if both are specified. |
-| ```--cport``` | port | *required* | Connect port. |
-| ```--cstrict``` | | *optional* | **Security**: Only accept packets from the connect caddr / cport, otherwise accept from all sources. |
+| ```--connect-address``` | address | *required* | Connect address. |
+| ```--connect-host``` | address | *required* | Connect host, overwrites caddr if both are specified. |
+| ```--connect-port``` | port | *required* | Connect port. |
+| ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from the connect caddr / cport, otherwise accept from all sources. |
 
 # Sender
 
@@ -77,9 +90,9 @@ The UDP redirector sends packets from here (e.g., to the wireguard server). If a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--saddr``` | address | *optional* | Send packets from address. |
-| ```--sport``` | port | *optional* | Send packets from port. |
-| ```--sif``` | interface | *optional* | Send packets from interface. |
+| ```--send-address``` | address | *optional* | Send packets from address. |
+| ```--send-port``` | port | *optional* | Send packets from port. |
+| ```--send-interface``` | interface | *optional* | Send packets from interface. |
 
 # Listener security
 
@@ -87,29 +100,11 @@ Both must be specified; listener drops packets if they do not arrive from this a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--lsaddr``` | address | *optional* | Listen address receives packets from this source address. |
-| ```--lsport``` | port | *optional* | Listen port receives packets from this source port (must be set together, ```--lstrict``` is implied). |
+| ```--listen-sender-address``` | address | *optional* | Listen endpoint only accepts packets from this source address. |
+| ```--listen-sender-port``` | port | *optional* | Listen endpoint only accepts packets from this source port (must be set together, ```--listen-strict``` is implied). |
 
 # Miscellaneous
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
 | ```--ignore-errors``` | | *optional* | Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. |
-
-# Example
-
-```mermaid
-graph TD
-    A["Wireguard Client <br/><br/>Send from:<br/>IP: 192.168.1.1<br/>Port: 51820"] <--> B("Receive on:<br/>IP: 192.168.1.32 (laddr) (optional)<br/>Port: 51821 (lport)<br/>Interface: en0 (lif) (optional)<br/><br/>Receive from: (optional)<br/>IP: 192.168.1.1 (lsaddr) (optional)<br/>Port: 51820 (lsport) (optional)<br/>Only receive from Wireguard Client (lstrict) (optional)<br/><br/>UDP Redirector<br/><br/>Send to:<br/>Host: example.endpoint.net (chost)</br>Port: 51822 (cport)<br/>Only receive from Wireguard Server (cstrict) (optional)<br/><br/>Send from:<br/>Interface: utun5 (sif) (optional)<br/><br/>")
-    B <--> C["Listen on:<br/>Host: example.endpoint.net<br/>Port: 51822<br/><br/>Wireguard Server"]
-```
-
-```
-./udp-redirect \
-    --debug \
-    --laddr 192.168.1.32 --lport 51821 --lif en0 --lstrict \
-    --chost example.endpoint.net --cport 51822 --cstrict \
-    --sif utun5 \
-    --lsaddr 192.168.1.1 --lsport 51820 \
-    --ignore-errors
-```
