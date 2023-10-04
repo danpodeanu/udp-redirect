@@ -32,8 +32,10 @@ or
 ```
 ./udp-redirect \
     --debug \
-    --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0 --listen-address-strict \
-    --connect-host example.endpoint.net --connect-port 51822 --connect-address-strict \
+    --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0 \
+        --listen-address-strict \
+    --connect-host example.endpoint.net --connect-port 51822 \
+        --connect-address-strict \
     --send-interface utun5 \
     --listen-sender-address 192.168.1.1 --listen-sender-port 51820 \
     --ignore-errors
