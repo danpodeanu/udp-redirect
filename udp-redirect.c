@@ -55,6 +55,16 @@
 #define EOK 0
 
 /**
+  * Maximum known errno, used to ignore harmless sendto / recvfrom errors
+  */
+#define MAX_ERRNO 256
+
+/**
+  * Set the errno ignore boolean for a specific errno
+  */
+#define ERRNO_IGNORE_SET(X, Y) if ((Y) >= 0 && (Y) < MAX_ERRNO) (X)[(Y)] = 1;
+
+/**
  * @brief The available debug levels.
  */
 enum DEBUG_LEVEL {
@@ -68,26 +78,28 @@ enum DEBUG_LEVEL {
  * Command line options.
  */
 static struct option longopts[] = {
-    { "verbose",    no_argument,            NULL,           'v' }, ///< Verbose mode, can be specified multiple times (optional)
-    { "debug",      no_argument,            NULL,           'd' }, ///< Debug mode (optional)
+    { "verbose",          no_argument,            NULL,           'v' }, ///< Verbose mode, can be specified multiple times (optional)
+    { "debug",            no_argument,            NULL,           'd' }, ///< Debug mode (optional)
 
-    { "laddr",      required_argument,      NULL,           'a' }, ///< Listen address (required)
-    { "lport",      required_argument,      NULL,           'b' }, ///< Listen port (required)
-    { "lif",        required_argument,      NULL,           'c' }, ///< Listen interface (optional)
+    { "laddr",            required_argument,      NULL,           'a' }, ///< Listen address (required)
+    { "lport",            required_argument,      NULL,           'b' }, ///< Listen port (required)
+    { "lif",              required_argument,      NULL,           'c' }, ///< Listen interface (optional)
 
-    { "caddr",      required_argument,      NULL,           'g' }, ///< Connect address (required)
-    { "chost",      required_argument,      NULL,           'h' }, ///< Connect host (required)
-    { "cport",      required_argument,      NULL,           'i' }, ///< Connect port (required)
+    { "caddr",            required_argument,      NULL,           'g' }, ///< Connect address (required)
+    { "chost",            required_argument,      NULL,           'h' }, ///< Connect host (required)
+    { "cport",            required_argument,      NULL,           'i' }, ///< Connect port (required)
 
-    { "saddr",      required_argument,      NULL,           'm' }, ///< Send packets address (optional)
-    { "sport",      required_argument,      NULL,           'n' }, ///< Send packets port (optional)
-    { "sif",        required_argument,      NULL,           'o' }, ///< Send packets interface (optional)
+    { "saddr",            required_argument,      NULL,           'm' }, ///< Send packets address (optional)
+    { "sport",            required_argument,      NULL,           'n' }, ///< Send packets port (optional)
+    { "sif",              required_argument,      NULL,           'o' }, ///< Send packets interface (optional)
 
-    { "lstrict",    no_argument,            NULL,           'x' }, ///< Listener only receives packets from the same endpoint
-    { "cstrict",    no_argument,            NULL,           'y' }, ///< Sender only receives packets from the connect address
+    { "lstrict",          no_argument,            NULL,           'x' }, ///< Listener only receives packets from the same endpoint
+    { "cstrict",          no_argument,            NULL,           'y' }, ///< Sender only receives packets from the connect address
 
-    { "lsaddr",     required_argument,      NULL,           'k' }, ///< Connect expects packets from this source address
-    { "lsport",     required_argument,      NULL,           'l' }, ///< Connect expects packets from this source port
+    { "lsaddr",           required_argument,      NULL,           'k' }, ///< Connect expects packets from this source address
+    { "lsport",           required_argument,      NULL,           'l' }, ///< Connect expects packets from this source port
+
+    { "ignore-errors",    no_argument,            NULL,           'z' }, ///< Ignore harmless recvfrom / sendto errors
 
     { NULL,         0,                      NULL,           0 }
 };
@@ -109,6 +121,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--saddr <address>] [--sport <port>] [--sif <interface>]\n");
     fprintf(stderr, "          [--cstrict] [--lstrict]\n");
     fprintf(stderr, "          [--lsaddr <address>] [--lsport <port>]\n");
+    fprintf(stderr, "          [--ignore-errors]\n");
     fprintf(stderr, "          [--verbose] [--debug]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--verbose             Verbose mode, can be specified multiple times (optional)\n");
@@ -131,6 +144,8 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--lsaddr <address>    Listen address receives packets from this source address (optional)\n");
     fprintf(stderr, "--lsport <port>       Listen port receives packets from this source port (optional)\n");
     fprintf(stderr, "                      (must be set together, --lstrict is implied)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "--ignore-errors       Ignore most send errors (unreachable, etc.) instead of exiting\n");
     fprintf(stderr, "\n");
 
     exit(EXIT_FAILURE);
@@ -157,6 +172,8 @@ struct settings {
 
     char *lsaddr;       ///< Listen port expects packets from this address
     int lsport;         ///< Listen port only expects packets from this port
+
+    int eignore;        //< Ignore most recvfrom / sendto errors
 };
 
 /**
@@ -181,6 +198,8 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
     DEBUG(DEBUG_LEVEL_INFO, "%s socket: create", desc);
     if ((xsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
         perror("socket");
+        DEBUG(DEBUG_LEVEL_ERROR, "Cannot create DGRAM socket (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
@@ -190,7 +209,8 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
     if (xaddr != NULL) {
         if ((addr.sin_addr.s_addr = inet_addr(xaddr)) == INADDR_NONE) {
             perror("inet_addr");
-            DEBUG(DEBUG_LEVEL_ERROR, "%s address invalid %s", desc, xaddr);
+            DEBUG(DEBUG_LEVEL_ERROR, "%s address invalid %s (%d)", desc, xaddr, errno);
+
             exit(EXIT_FAILURE);
         }
         DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to address %s", desc, xaddr);
@@ -216,11 +236,15 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
 
         if ((xif_idx = if_nametoindex(xif)) == 0) {
             perror("if_nametoindex");
+            DEBUG(DEBUG_LEVEL_ERROR, "Cannot get the interface ID (%d)", errno);
+
             exit(EXIT_FAILURE);
         }
 
         if (setsockopt(xsock, IPPROTO_IP, IP_BOUND_IF, &xif_idx, sizeof(xif_idx)) == -1) {
             perror("setsockopt");
+            DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
+
             exit(EXIT_FAILURE);
         }
 #elif __unix__
@@ -228,6 +252,8 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
 
         if (setsockopt(xsock, SOL_SOCKET, SO_BINDTODEVICE, xif, strlen(xif)) == -1) {
             perror("setsockopt");
+            DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
+
             exit(EXIT_FAILURE);
         }
 #endif
@@ -239,24 +265,32 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
 
     if (setsockopt(xsock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
         perror("setsockopt");
+        DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket SO_REUSEADDR (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
     DEBUG(DEBUG_LEVEL_INFO, "%s socket: set nonblocking", desc);
     if (fcntl(xsock, F_SETFL, O_NONBLOCK) == -1) {
         perror("fcntl");
+        DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket O_NONBLOCK (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
     DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind", desc);
     if (bind(xsock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
         perror("bind");
+        DEBUG(DEBUG_LEVEL_ERROR, "Cannot bind socket (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
     socklen_t xsock_name_len = sizeof(*xsock_name);
     if (getsockname(xsock, (struct sockaddr *)xsock_name, &xsock_name_len) == -1) {
         perror("getsockname");
+        DEBUG(DEBUG_LEVEL_ERROR, "Cannot get socket name (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
@@ -276,7 +310,7 @@ char *resolve_host(int debug_level, const char *host) {
 
     if ((host_info = gethostbyname(host)) == NULL) {
         perror("gethostbyname");
-        DEBUG(DEBUG_LEVEL_INFO, "Could not resolve host %s", host);
+        DEBUG(DEBUG_LEVEL_INFO, "Could not resolve host %s (%d)", host, errno);
 
         exit(EXIT_FAILURE);
     }
@@ -284,6 +318,8 @@ char *resolve_host(int debug_level, const char *host) {
     address = (struct in_addr *)(host_info->h_addr);
     if ((retval = strdup(inet_ntoa(*address))) == NULL) {
         perror("strdup");
+        DEBUG(DEBUG_LEVEL_INFO, "Could not duplicate string (%d)", errno);
+
         exit(EXIT_FAILURE);
     }
 
@@ -309,11 +345,12 @@ int main(int argc, char *argv[]) {
 
     /* Command line arguments and default values */
     struct settings s = {
-        NULL, 0, NULL,
-        NULL, NULL, 0,
-        NULL, 0, NULL,
-        0, 0,
-        NULL, 0
+        NULL, 0, NULL,          // *laddr, lport, *lif
+        NULL, NULL, 0,          // *caddr, *chost, cport
+        NULL, 0, NULL,          // *saddr, sport, *sif
+        0, 0,                   // lstrict, cstrict
+        NULL, 0,                // *lsaddr, lsport
+        0,                      // eignore
     };
 
     int lsock; /* Listen socket */
@@ -334,6 +371,8 @@ int main(int argc, char *argv[]) {
 
     struct sockaddr_in endpoint; /* Address where the current packet was received from */
     struct sockaddr_in previous_endpoint; /* Address where the previous packet was received from */
+
+    unsigned char errno_ignore[MAX_ERRNO];
 
     while ((ch = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (ch) {
@@ -357,7 +396,8 @@ int main(int argc, char *argv[]) {
                 s.lport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
-                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid listen port: %s", optarg);
+                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid listen port: %s (%d)", optarg, errno);
+
                     exit(EXIT_FAILURE);
                 }
 
@@ -378,7 +418,8 @@ int main(int argc, char *argv[]) {
                 s.cport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
-                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid connect port: %s", optarg);
+                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid connect port: %s (%d)", optarg, errno);
+
                     exit(EXIT_FAILURE);
                 }
 
@@ -391,7 +432,8 @@ int main(int argc, char *argv[]) {
                 s.sport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
-                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid send port: %s", optarg);
+                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid send port: %s (%d)", optarg, errno);
+
                     exit(EXIT_FAILURE);
                 }
 
@@ -416,9 +458,14 @@ int main(int argc, char *argv[]) {
                 s.lsport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
-                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid send port: %s", optarg);
+                    DEBUG(DEBUG_LEVEL_ERROR, "Invalid send port: %s (%d)", optarg, errno);
+
                     exit(EXIT_FAILURE);
                 }
+
+                break;
+            case 'z': /* --send-ignore-errors */
+                s.eignore = 1;
 
                 break;
             default:
@@ -496,6 +543,8 @@ int main(int argc, char *argv[]) {
         DEBUG(DEBUG_LEVEL_INFO, "Listen only accepts packets from port: %d", s.lsport);
     }
 
+    DEBUG(DEBUG_LEVEL_INFO, "Ignore errors: %s", s.eignore?"ENABLED":"DISABLED");
+
     DEBUG(DEBUG_LEVEL_INFO, "---- START ----");
 
     lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, &lsock_name); /* Set up listening socket */
@@ -505,7 +554,7 @@ int main(int argc, char *argv[]) {
     caddr.sin_family = AF_INET;
     if ((caddr.sin_addr.s_addr = inet_addr(s.caddr)) == INADDR_NONE) {
         perror("inet_addr");
-        DEBUG(DEBUG_LEVEL_ERROR, "Invalid connect address %s", s.caddr);
+        DEBUG(DEBUG_LEVEL_ERROR, "Invalid connect address %s (%d)", s.caddr, errno);
 
         exit(EXIT_FAILURE);
     }
@@ -518,7 +567,7 @@ int main(int argc, char *argv[]) {
     } else {
         if ((previous_endpoint.sin_addr.s_addr = inet_addr(s.lsaddr)) == INADDR_NONE) {
             perror("inet_addr");
-            DEBUG(DEBUG_LEVEL_ERROR, "Invalid listen packet address %s", s.lsaddr);
+            DEBUG(DEBUG_LEVEL_ERROR, "Invalid listen packet address %s (%d)", s.lsaddr, errno);
 
             exit(EXIT_FAILURE);
         }
@@ -526,6 +575,19 @@ int main(int argc, char *argv[]) {
     }
 
     int endpoint_len = sizeof(endpoint);
+
+    memset(errno_ignore, 0, MAX_ERRNO * sizeof(unsigned char));
+
+    ERRNO_IGNORE_SET(errno_ignore, EINTR); /* Always ignore EINTR */
+    if (s.eignore == 1) { /* List of harmless recvfrom / sendto errors. Possibly incorrect. */
+        ERRNO_IGNORE_SET(errno_ignore, EAGAIN);
+        ERRNO_IGNORE_SET(errno_ignore, EHOSTUNREACH);
+        ERRNO_IGNORE_SET(errno_ignore, ENETDOWN);
+        ERRNO_IGNORE_SET(errno_ignore, ENETUNREACH);
+        ERRNO_IGNORE_SET(errno_ignore, ENOBUFS);
+        ERRNO_IGNORE_SET(errno_ignore, EPIPE);
+        ERRNO_IGNORE_SET(errno_ignore, EADDRNOTAVAIL);
+    }
 
     while (1) {
         int poll_retval;
@@ -543,6 +605,8 @@ int main(int argc, char *argv[]) {
             }
 
             perror("poll");
+            DEBUG(DEBUG_LEVEL_ERROR, "Could not check readable sockets (%d)", errno);
+
             exit(EXIT_FAILURE);
         }
         if (poll_retval == 0) {
@@ -554,9 +618,9 @@ int main(int argc, char *argv[]) {
         if (ufds[0].revents & POLLIN || ufds[0].revents & POLLPRI) {
             if ((recvfrom_retval = recvfrom(lsock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
-                if (errno != EINTR) {
+                if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
                     perror("recvfrom");
-                    DEBUG(DEBUG_LEVEL_INFO, "Listen cannot receive");
+                    DEBUG(DEBUG_LEVEL_INFO, "Listen cannot receive (%d)", errno);
 
                     exit(EXIT_FAILURE);
                 }
@@ -588,17 +652,20 @@ int main(int argc, char *argv[]) {
 
                     if ((sendto_retval = sendto(ssock, network_buffer, recvfrom_retval, 0,
                                     (struct sockaddr *)&caddr, sizeof(caddr))) == -1) {
-                        if (errno != EINTR) {
+                        if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
                             perror("sendto");
-                            DEBUG(DEBUG_LEVEL_INFO, "Cannot send to send port");
+                            DEBUG(DEBUG_LEVEL_ERROR, "Cannot send packet to send port (%d)", errno);
 
                             exit(EXIT_FAILURE);
                         }
                     }
-                    DEBUG(DEBUG_LEVEL_DEBUG, "SEND (%s, %d) -> (%s, %d) (SEND PORT): %d bytes",
+
+                    DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
+                            "SEND (%s, %d) -> (%s, %d) (SEND PORT): %d bytes (%s WRITE %d bytes)",
                             inet_ntop(AF_INET, &(ssock_name.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(ssock_name.sin_port),
                             inet_ntop(AF_INET, &(caddr.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(caddr.sin_port),
-                            sendto_retval);
+                            sendto_retval,
+                            (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
                 } else {
                     DEBUG(DEBUG_LEVEL_ERROR, "LISTEN PORT invalid source (%s, %d), was expecting (%s, %d)",
                             inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
@@ -611,9 +678,9 @@ int main(int argc, char *argv[]) {
         if (ufds[1].revents & POLLIN || ufds[1].revents & POLLPRI) {
             if ((recvfrom_retval = recvfrom(ssock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
-                if (errno != EINTR) {
+                if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
                     perror("recvfrom");
-                    DEBUG(DEBUG_LEVEL_INFO, "Send cannot receive");
+                    DEBUG(DEBUG_LEVEL_INFO, "Send cannot receive packet (%d)", errno);
 
                     exit(EXIT_FAILURE);
                 }
@@ -634,17 +701,20 @@ int main(int argc, char *argv[]) {
 
                     if ((sendto_retval = sendto(lsock, network_buffer, recvfrom_retval, 0,
                                     (struct sockaddr *)&previous_endpoint, sizeof(previous_endpoint))) == -1) {
-                        if (errno != EINTR) {
+                        if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
                             perror("sendto");
-                            DEBUG(DEBUG_LEVEL_INFO, "Cannot send to listen port");
+                            DEBUG(DEBUG_LEVEL_INFO, "Cannot send packet to listen port (%d)", errno);
 
                             exit(EXIT_FAILURE);
                         }
                     }
-                    DEBUG(DEBUG_LEVEL_DEBUG, "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes",
+
+                    DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
+                            "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes (%s WRITE %d bytes)",
                             inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
                             inet_ntop(AF_INET, &(previous_endpoint.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(previous_endpoint.sin_port),
-                            sendto_retval);
+                            sendto_retval,
+                            (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
                 } else {
                     DEBUG(DEBUG_LEVEL_ERROR, "SEND PORT invalid source (%s, %d), was expecting (%s, %d)",
                             inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),

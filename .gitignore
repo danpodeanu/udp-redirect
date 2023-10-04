@@ -3,6 +3,7 @@
 udp-redirect
 c
 r
+.*.swp
 
 # Prerequisites
 *.d
