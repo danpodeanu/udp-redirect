@@ -84,7 +84,7 @@ The UDP redirector sends packets here (e.g., to the wireguard server):
 | ```--connect-address``` | address | *required* | Connect address. |
 | ```--connect-host``` | address | *required* | Connect host, overwrites ```connect-host``` if both are specified. |
 | ```--connect-port``` | port | *required* | Connect port. |
-| ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from the connect ```connect-host``` / ```connect-port```, otherwise accept from all sources. |
+| ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` / ```connect-port```, otherwise accept from all sources. |
 
 # Sender
 
