@@ -95,7 +95,7 @@ $(document).ready(function(){initNavTree('md__r_e_a_d_m_e.html',''); initResizab
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested to run on Linux x64 and MacOS / Darwin arm64.</p>
 <p>Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible.</p>
 <p><a href="http://www.dest-unreach.org/socat/">socat</a> is a very good alternative, albeit not fit for all purposes.</p>
-<p><a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
+<p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
 <h1><a class="anchor" id="autotoc_md1"></a>
 Compile</h1>
@@ -104,11 +104,11 @@ Compile</h1>
 <div class="fragment"><div class="line"># gcc udp-redirect.c -o udp-redirect -Wall -O3</div>
 </div><!-- fragment --><h1><a class="anchor" id="autotoc_md2"></a>
 Documentation</h1>
-<p>Doxygen generated documentation in the <code>doc</code> folder (open <code>index.html</code>).</p>
+<p>Doxygen generated documentation in <a href="docs/">docs</a>/index.html</p>
 <h1><a class="anchor" id="autotoc_md3"></a>
 Command Line Arguments</h1>
 <div class="fragment"><div class="line">-redirect [arguments]</div>
-</div><!-- fragment --><p>Runs in foreground and expects process control to be managed externally (svscan, nohup, etc.)</p>
+</div><!-- fragment --><p>Runs in foreground and expects external process control (svscan, nohup, etc.)</p>
 <h2><a class="anchor" id="autotoc_md4"></a>
 Debug</h2>
 <table class="markdownTable">
