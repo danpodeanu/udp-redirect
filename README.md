@@ -1,5 +1,5 @@
 # udp-redirect
-A simple yet flexible and very fast UDP redirector. Tested to run on Linux x64 and MacOS / Darwin arm64.
+A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.
 
 Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
 
