@@ -15,11 +15,11 @@ Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a dif
 
 or
 
-```gcc udp-redirect.c -o udp-redirect -O3```
+```# gcc udp-redirect.c -o udp-redirect -Wall -O3```
 
 # Documentation
 
-Doxygen generated documentation in the ```doc``` folder (open ```index.html```).
+See the [docs](docs/index.html) folder.
 
 # Command Line Arguments
 
@@ -40,7 +40,7 @@ The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--laddr``` | address | *required* | Listen address. |
+| ```--laddr``` | address | *optional* | Listen address. |
 | ```--lport``` | port | *required* | Listen port. |
 | ```--lif``` | interface | *optional* | Listen interface name. |
 | ```--lstrict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```lstrict``` mode, only accept packets from the same source as the first packet. For added security, when specified, the ```lsaddr``` and ```lsport``` parameters set the sender endpoint and ```lstrict``` (e.g., the listsener endpoint is known and fixed). |
@@ -84,13 +84,17 @@ Both must be specified; listener drops packets if they do not arrive from this a
 # Example
 
 ```mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
+graph TD
+    A["Wireguard Client <br/><br/>Send from:<br/>IP: 192.168.1.1<br/>Port: 51820"] <--> B("Receive on:<br/>IP: 192.168.1.32 (laddr) (optional)<br/>Port: 51821 (lport)<br/>Interface: en0 (lif) (optional)<br/><br/>Receive from: (optional)<br/>IP: 192.168.1.1 (lsaddr) (optional)<br/>Port: 51820 (lsport) (optional)<br/>Only receive from Wireguard Client (lstrict) (optional)<br/><br/>UDP Redirector<br/><br/>Send to:<br/>Host: example.endpoint.net (chost)</br>Port: 51822 (cport)<br/>Only receive from Wireguard Server (cstrict) (optional)<br/><br/>Send from:<br/>Interface: utun5 (sif) (optional)<br/><br/>")
+    B <--> C["Listen on:<br/>Host: example.endpoint.net<br/>Port: 51822<br/><br/>Wireguard Server"]
 ```
 
 ```
-./udp-redirect --debug --laddr 192.168.1.32 --lport 51820 --lif en0 --chost example.endpoint.net --cport 51820 --sif utun5 --lstrict --cstrict --lsaddr 192.168.1.1 --lsport 51820 --ignore-errors
+./udp-redirect \
+    --debug \
+    --laddr 192.168.1.32 --lport 51821 --lif en0 --lstrict \
+    --chost example.endpoint.net --cport 51822 --cstrict \
+    --sif utun5 \
+    --lsaddr 192.168.1.1 --lsport 51820 \
+    --ignore-errors
 ```

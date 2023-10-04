@@ -81,7 +81,7 @@ static struct option longopts[] = {
     { "verbose",          no_argument,            NULL,           'v' }, ///< Verbose mode, can be specified multiple times (optional)
     { "debug",            no_argument,            NULL,           'd' }, ///< Debug mode (optional)
 
-    { "laddr",            required_argument,      NULL,           'a' }, ///< Listen address (required)
+    { "laddr",            required_argument,      NULL,           'a' }, ///< Listen address (optional)
     { "lport",            required_argument,      NULL,           'b' }, ///< Listen port (required)
     { "lif",              required_argument,      NULL,           'c' }, ///< Listen interface (optional)
 
@@ -116,7 +116,7 @@ void usage(const char *argv0, const char *message) {
         fprintf(stderr, "%s\n", message);
 
     fprintf(stderr, "Usage: %s\n", argv0);
-    fprintf(stderr, "          --laddr <address> --lport <port> [--lif <interface>]\n");
+    fprintf(stderr, "          [--laddr <address>] --lport <port> [--lif <interface>]\n");
     fprintf(stderr, "          --caddr <address> --cport <port>\n");
     fprintf(stderr, "          [--saddr <address>] [--sport <port>] [--sif <interface>]\n");
     fprintf(stderr, "          [--cstrict] [--lstrict]\n");
@@ -127,7 +127,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--verbose             Verbose mode, can be specified multiple times (optional)\n");
     fprintf(stderr, "--debug               Debug mode (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--laddr <address>     Listen address (required)\n");
+    fprintf(stderr, "--laddr <address>     Listen address (optional)\n");
     fprintf(stderr, "--lport <port>        Listen port (required)\n");
     fprintf(stderr, "--lif <interface>     Listen interface name (optional)\n");
     fprintf(stderr, "--lstrict             Only receive packets from the same source as the first packet (optional)\n");
@@ -476,10 +476,6 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
 
-    if (s.laddr == NULL) {
-        usage(argv0, "Listen address not specified");
-    }
-
     if (s.lport == 0) {
         usage(argv0, "Listen port not specified");
     }
@@ -511,7 +507,7 @@ int main(int argc, char *argv[]) {
 
     DEBUG(DEBUG_LEVEL_ERROR, "Debug level: %d", debug_level);
 
-    DEBUG(DEBUG_LEVEL_INFO, "Listen address: %s", s.laddr);
+    DEBUG(DEBUG_LEVEL_INFO, "Listen address: %s", (s.laddr != NULL)?s.laddr:"ANY");
     DEBUG(DEBUG_LEVEL_INFO, "Listen port: %d", s.lport);
     DEBUG(DEBUG_LEVEL_INFO, "Listen interface: %s", (s.lif != NULL)?s.lif:"ANY");
 

@@ -25,7 +25,19 @@
 var NAVTREE =
 [
   [ "UDP Redirect", "index.html", [
-    [ "udp-redirect", "md__r_e_a_d_m_e.html", null ],
+    [ "udp-redirect", "md__r_e_a_d_m_e.html", [
+      [ "Compile", "md__r_e_a_d_m_e.html#autotoc_md1", null ],
+      [ "Documentation", "md__r_e_a_d_m_e.html#autotoc_md2", null ],
+      [ "Command Line Arguments", "md__r_e_a_d_m_e.html#autotoc_md3", [
+        [ "Debug", "md__r_e_a_d_m_e.html#autotoc_md4", null ],
+        [ "Listener", "md__r_e_a_d_m_e.html#autotoc_md5", null ],
+        [ "Connect", "md__r_e_a_d_m_e.html#autotoc_md6", null ]
+      ] ],
+      [ "Sender", "md__r_e_a_d_m_e.html#autotoc_md7", null ],
+      [ "Listener security", "md__r_e_a_d_m_e.html#autotoc_md8", null ],
+      [ "Miscellaneous", "md__r_e_a_d_m_e.html#autotoc_md9", null ],
+      [ "Example", "md__r_e_a_d_m_e.html#autotoc_md10", null ]
+    ] ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],

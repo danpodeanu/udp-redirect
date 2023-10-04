@@ -1,6 +1,6 @@
 IDIR=include
 CC=gcc
-CFLAGS=-I$(IDIR) -ggdb -Wall -O3
+CFLAGS=-I$(IDIR) -Wall -O3
 
 ODIR=obj
 
@@ -22,3 +22,7 @@ udp-redirect: $(OBJ)
 
 clean:
 	rm -f udp-redirect $(ODIR)/*.o *~ core
+	rm -fr docs/
+
+docs:
+	doxygen
