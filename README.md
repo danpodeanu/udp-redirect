@@ -20,13 +20,13 @@ or
 
 # Documentation
 
-See [docs](docs/)/index.html
+Doxygen generated documentation in [docs](docs/)/index.html
 
 # Command Line Arguments
 
 ```udp-redirect [arguments]```
 
-Runs in foreground and expects process control to be managed externally (svscan, nohup, etc.)
+Runs in foreground and expects external process control (svscan, nohup, etc.)
 
 ## Debug
 
