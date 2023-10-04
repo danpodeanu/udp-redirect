@@ -93,23 +93,43 @@ $(document).ready(function(){initNavTree('md__r_e_a_d_m_e.html',''); initResizab
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested to run on Linux x64 and MacOS / Darwin arm64.</p>
-<p>Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible.</p>
-<p><a href="http://www.dest-unreach.org/socat/">socat</a> is a very good alternative, albeit not fit for all purposes.</p>
+<p>Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.</p>
 <p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
 <h1><a class="anchor" id="autotoc_md1"></a>
+Security</h1>
+<p>Supports enforcing the packet source for all received packets. This only provides modest security improvements as generating UDP packets is trivial.</p>
+<h1><a class="anchor" id="autotoc_md2"></a>
 Compile</h1>
 <div class="fragment"><div class="line"># make</div>
 </div><!-- fragment --><p>or</p>
 <div class="fragment"><div class="line"># gcc udp-redirect.c -o udp-redirect -Wall -O3</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md2"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md3"></a>
+Run</h1>
+<div class="fragment"><div class="line">./udp-redirect \</div>
+<div class="line">    --listen-port 51821 \</div>
+<div class="line">    --connect-host example.endpoint.net --connect-port 51822 \</div>
+<div class="line">    --ignore-errors</div>
+</div><!-- fragment --><div class="fragment"><div class="line">./udp-redirect \</div>
+<div class="line">    --debug \</div>
+<div class="line">    --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0 \</div>
+<div class="line">        --listen-address-strict \</div>
+<div class="line">    --connect-host example.endpoint.net --connect-port 51822 \</div>
+<div class="line">        --connect-address-strict \</div>
+<div class="line">    --send-interface utun5 \</div>
+<div class="line">    --listen-sender-address 192.168.1.1 --listen-sender-port 51820 \</div>
+<div class="line">    --ignore-errors</div>
+</div><!-- fragment --><div class="fragment"><div class="line">graph TD</div>
+<div class="line">    A[&quot;Wireguard Client &lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;IP: 192.168.1.1&lt;br/&gt;Port: 51820&quot;] &lt;--&gt; B(&quot;Receive on:&lt;br/&gt;IP: 192.168.1.32 (--listen-address) (optional)&lt;br/&gt;Port: 51821 (--listen-port)&lt;br/&gt;Interface: en0 (--listen-interface) (optional)&lt;br/&gt;&lt;br/&gt;Receive from: (optional)&lt;br/&gt;IP: 192.168.1.1 (--listen-sender-address) (optional)&lt;br/&gt;Port: 51820 (--listen-sender-port) (optional)&lt;br/&gt;Only receive from Wireguard Client (--listen-address-strict) (optional)&lt;br/&gt;&lt;br/&gt;UDP Redirector&lt;br/&gt;&lt;br/&gt;Send to:&lt;br/&gt;Host: example.endpoint.net (--connect-host)&lt;/br&gt;Port: 51822 (--connect-port)&lt;br/&gt;Only receive from Wireguard Server (--connect-address-strict) (optional)&lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;Interface: utun5 (--sender-interface) (optional)&lt;br/&gt;&lt;br/&gt;&quot;)</div>
+<div class="line">    B &lt;--&gt; C[&quot;Listen on:&lt;br/&gt;Host: example.endpoint.net&lt;br/&gt;Port: 51822&lt;br/&gt;&lt;br/&gt;Wireguard Server&quot;]</div>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md4"></a>
 Documentation</h1>
 <p>Doxygen generated documentation in <a href="docs/">docs</a>/index.html</p>
-<h1><a class="anchor" id="autotoc_md3"></a>
+<h1><a class="anchor" id="autotoc_md5"></a>
 Command Line Arguments</h1>
 <div class="fragment"><div class="line">-redirect [arguments]</div>
 </div><!-- fragment --><p>Runs in foreground and expects external process control (svscan, nohup, etc.)</p>
-<h2><a class="anchor" id="autotoc_md4"></a>
+<h2><a class="anchor" id="autotoc_md6"></a>
 Debug</h2>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -119,61 +139,61 @@ Debug</h2>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--debug</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Debug mode (e.g., very verbose).   </td></tr>
 </table>
-<h2><a class="anchor" id="autotoc_md5"></a>
+<h2><a class="anchor" id="autotoc_md7"></a>
 Listener</h2>
 <p>The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--laddr</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--lport</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Listen port.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Listen port.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--lif</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen interface name.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-interface</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen interface name.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--lstrict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security:</b> By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In <code>lstrict</code> mode, only accept packets from the same source as the first packet. For added security, when specified, the <code>lsaddr</code> and <code>lsport</code> parameters set the sender endpoint and <code>lstrict</code> (e.g., the listsener endpoint is known and fixed).   </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security:</b> By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In <code>listen-address-strict</code> mode, only accept packets from the same source as the first packet, or the source specified by <code>listen-sender-address</code> and <code>listen-sender-port</code>.   </td></tr>
 </table>
-<h2><a class="anchor" id="autotoc_md6"></a>
+<h2><a class="anchor" id="autotoc_md8"></a>
 Connect</h2>
 <p>The UDP redirector sends packets here (e.g., to the wireguard server):</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--caddr</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--chost</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect host, overwrites caddr if both are specified.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-host</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect host, overwrites caddr if both are specified.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--cport</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect port.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect port.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--cstrict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from the connect caddr / cport, otherwise accept from all sources.   </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from the connect caddr / cport, otherwise accept from all sources.   </td></tr>
 </table>
-<h1><a class="anchor" id="autotoc_md7"></a>
+<h1><a class="anchor" id="autotoc_md9"></a>
 Sender</h1>
 <p>The UDP redirector sends packets from here (e.g., to the wireguard server). If any is missing, it will be selected by the operating system (usually <code>0.0.0.0</code>, random port, default interface).</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--saddr</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--send-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--sport</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from port.    </td></tr>
+<td class="markdownTableBodyNone"><code>--send-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from port.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--sif</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from interface.   </td></tr>
+<td class="markdownTableBodyNone"><code>--send-interface</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from interface.   </td></tr>
 </table>
-<h1><a class="anchor" id="autotoc_md8"></a>
+<h1><a class="anchor" id="autotoc_md10"></a>
 Listener security</h1>
 <p>Both must be specified; listener drops packets if they do not arrive from this address / port.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--lsaddr</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen address receives packets from this source address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-sender-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--lsport</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen port receives packets from this source port (must be set together, <code>--lstrict</code> is implied).   </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-sender-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source port (must be set together, <code>--listen-strict</code> is implied).   </td></tr>
 </table>
-<h1><a class="anchor" id="autotoc_md9"></a>
+<h1><a class="anchor" id="autotoc_md11"></a>
 Miscellaneous</h1>
 <table class="markdownTable">
 <tr class="markdownTableHead">
@@ -181,19 +201,7 @@ Miscellaneous</h1>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--ignore-errors</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting.   </td></tr>
 </table>
-<h1><a class="anchor" id="autotoc_md10"></a>
-Example</h1>
-<div class="fragment"><div class="line">graph TD</div>
-<div class="line">    A[&quot;Wireguard Client &lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;IP: 192.168.1.1&lt;br/&gt;Port: 51820&quot;] &lt;--&gt; B(&quot;Receive on:&lt;br/&gt;IP: 192.168.1.32 (laddr) (optional)&lt;br/&gt;Port: 51821 (lport)&lt;br/&gt;Interface: en0 (lif) (optional)&lt;br/&gt;&lt;br/&gt;Receive from: (optional)&lt;br/&gt;IP: 192.168.1.1 (lsaddr) (optional)&lt;br/&gt;Port: 51820 (lsport) (optional)&lt;br/&gt;Only receive from Wireguard Client (lstrict) (optional)&lt;br/&gt;&lt;br/&gt;UDP Redirector&lt;br/&gt;&lt;br/&gt;Send to:&lt;br/&gt;Host: example.endpoint.net (chost)&lt;/br&gt;Port: 51822 (cport)&lt;br/&gt;Only receive from Wireguard Server (cstrict) (optional)&lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;Interface: utun5 (sif) (optional)&lt;br/&gt;&lt;br/&gt;&quot;)</div>
-<div class="line">    B &lt;--&gt; C[&quot;Listen on:&lt;br/&gt;Host: example.endpoint.net&lt;br/&gt;Port: 51822&lt;br/&gt;&lt;br/&gt;Wireguard Server&quot;]</div>
-</div><!-- fragment --><div class="fragment"><div class="line">./udp-redirect \</div>
-<div class="line">    --debug \</div>
-<div class="line">    --laddr 192.168.1.32 --lport 51821 --lif en0 --lstrict \</div>
-<div class="line">    --chost example.endpoint.net --cport 51822 --cstrict \</div>
-<div class="line">    --sif utun5 \</div>
-<div class="line">    --lsaddr 192.168.1.1 --lsport 51820 \</div>
-<div class="line">    --ignore-errors</div>
-</div><!-- fragment --> </div></div><!-- contents -->
+</div></div><!-- contents -->
 </div><!-- PageDoc -->
 </div><!-- doc-content -->
 <!-- start footer part -->
