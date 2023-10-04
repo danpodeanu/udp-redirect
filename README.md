@@ -1,22 +1,36 @@
 # udp-redirect
 A simple yet flexible and very fast UDP redirector. Tested to run on Linux x64 and MacOS / Darwin arm64.
 
-Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible.
-
-[socat](http://www.dest-unreach.org/socat/) is a very good alternative, albeit not fit for all purposes.
+Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
 
 ![GitHub CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 **Community contributions are welcome.**
 
-# Compile
+## Security
+
+Supports enforcing the packet source for all received packets.
+
+## Compile
 
 ```# make```
 
 or
 
 ```# gcc udp-redirect.c -o udp-redirect -Wall -O3```
+
+## Run
+
+```
+./udp-redirect \
+    --debug \
+    --laddr 192.168.1.32 --lport 51821 --lif en0 --lstrict \
+    --chost example.endpoint.net --cport 51822 --cstrict \
+    --sif utun5 \
+    --lsaddr 192.168.1.1 --lsport 51820 \
+    --ignore-errors
+```
 
 # Documentation
 
