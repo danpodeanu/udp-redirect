@@ -5,6 +5,7 @@ Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a dif
 
 [socat](http://www.dest-unreach.org/socat/) is a very good alternative, albeit not fit for all purposes.
 
+![GitHub CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 **Community contributions are welcome.**
@@ -19,7 +20,7 @@ or
 
 # Documentation
 
-See the [docs](docs/index.html) folder.
+See [docs](docs/)/index.html
 
 # Command Line Arguments
 
