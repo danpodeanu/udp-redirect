@@ -4,6 +4,7 @@ var structsettings =
     [ "chost", "structsettings.html#ad19d72d81de785bc796800503cda86a6", null ],
     [ "cport", "structsettings.html#acdfde83a90fe7d0c4f621bf8b5d1dfae", null ],
     [ "cstrict", "structsettings.html#a25a47d5c10e0378d70f152a98f9f9583", null ],
+    [ "eignore", "structsettings.html#a73ba0b9364d8e2f535fd5a0e9f0850ba", null ],
     [ "laddr", "structsettings.html#a3e8fb7d3e90a0a7d663d897969d8f517", null ],
     [ "lif", "structsettings.html#a538c4662177cb441197a01a4c26804a2", null ],
     [ "lport", "structsettings.html#a5f534553808758cbaec8d78796a6a40d", null ],

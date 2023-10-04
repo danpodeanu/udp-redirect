@@ -129,7 +129,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "\n");
     fprintf(stderr, "--laddr <address>     Listen address (required)\n");
     fprintf(stderr, "--lport <port>        Listen port (required)\n");
-    fprintf(stderr, "--lif <interface>     Listen interface (optional)\n");
+    fprintf(stderr, "--lif <interface>     Listen interface name (optional)\n");
     fprintf(stderr, "--lstrict             Only receive packets from the same source as the first packet (optional)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--caddr <address>     Connect address (required)\n");
@@ -145,7 +145,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--lsport <port>       Listen port receives packets from this source port (optional)\n");
     fprintf(stderr, "                      (must be set together, --lstrict is implied)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--ignore-errors       Ignore most send errors (unreachable, etc.) instead of exiting\n");
+    fprintf(stderr, "--ignore-errors       Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional)\n");
     fprintf(stderr, "\n");
 
     exit(EXIT_FAILURE);
