@@ -1,22 +1,16 @@
-IDIR=include
 CC=gcc
-CFLAGS=-I$(IDIR) -Wall -O3
+CFLAGS=-Wall -O3
 
 ODIR=obj
-
-LIBS=
-
-_DEPS =
-DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ = udp-redirect.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-$(ODIR)/%.o: %.c $(DEPS)
+$(ODIR)/%.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 udp-redirect: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: clean
 
