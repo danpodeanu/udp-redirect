@@ -25,8 +25,7 @@ or
 ```
 ./udp-redirect \
     --listen-port 51821 \
-    --connect-host example.endpoint.net --connect-port 51822 \
-    --ignore-errors
+    --connect-host example.endpoint.net --connect-port 51822
 ```
 
 ```
@@ -37,8 +36,7 @@ or
     --connect-host example.endpoint.net --connect-port 51822 \
         --connect-address-strict \
     --send-interface utun5 \
-    --listen-sender-address 192.168.1.1 --listen-sender-port 51820 \
-    --ignore-errors
+    --listen-sender-address 192.168.1.1 --listen-sender-port 51820
 ```
 
 ```mermaid
@@ -109,4 +107,5 @@ Both must be specified; listener drops packets if they do not arrive from this a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--ignore-errors``` | | *optional* | Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. |
+| ```--ignore-errors``` | | *optional* | Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. (default) |
+| ```--stop-errors``` | | *optional* | Stop on most receive or send errors (host / network unreachable, etc.) |
