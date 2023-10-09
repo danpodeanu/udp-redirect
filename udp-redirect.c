@@ -595,6 +595,8 @@ int main(int argc, char *argv[]) {
         ERRNO_IGNORE_SET(errno_ignore, EADDRNOTAVAIL);
     }
 
+    DEBUG(DEBUG_LEVEL_VERBOSE, "entering infinite loop");
+
     while (1) {
         int poll_retval;
         int recvfrom_retval;
