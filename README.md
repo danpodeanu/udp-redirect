@@ -107,5 +107,5 @@ Both must be specified; listener drops packets if they do not arrive from this a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--ignore-errors``` | | *optional* | Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. (default) |
+| ```--ignore-errors``` | | *optional* | Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. *(default)* |
 | ```--stop-errors``` | | *optional* | Stop on most receive or send errors (host / network unreachable, etc.) |
