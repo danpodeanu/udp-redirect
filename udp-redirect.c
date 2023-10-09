@@ -99,9 +99,10 @@ static struct option longopts[] = {
     { "listen-sender-address", required_argument,      NULL,           'k' }, ///< Connect expects packets from this source address
     { "listen-sender-port",    required_argument,      NULL,           'l' }, ///< Connect expects packets from this source port
 
-    { "ignore-errors",         no_argument,            NULL,           'z' }, ///< Ignore harmless recvfrom / sendto errors
+    { "ignore-errors",         no_argument,            NULL,           'r' }, ///< Ignore harmless recvfrom / sendto errors (default)
+    { "stop-errors",           no_argument,            NULL,           's' }, ///< Do NOT ignore harmless recvfrom / sendto errors
 
-    { NULL,                     0,                      NULL,           0 }
+    { NULL,                    0,                      NULL,            0 }
 };
 
 /**
@@ -121,7 +122,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--send-address <address>] [--send-port <port>] [--send-interface <interface>]\n");
     fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
     fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
-    fprintf(stderr, "          [--ignore-errors]\n");
+    fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
     fprintf(stderr, "          [--verbose] [--debug]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--verbose                            Verbose mode, can be specified multiple times (optional)\n");
@@ -145,7 +146,8 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--listen-sender-port <port>          Listen endpoint only accepts packets from this source port (optional)\n");
     fprintf(stderr, "                                     (must be set together, --listen-address-strict is implied)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--ignore-errors                      Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional)\n");
+    fprintf(stderr, "--ignore-errors                      Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional) (default)\n");
+    fprintf(stderr, "--stop-errors                        Exit on most receive or send errors (unreachable, etc.) (optional)\n");
     fprintf(stderr, "\n");
 
     exit(EXIT_FAILURE);
@@ -350,7 +352,7 @@ int main(int argc, char *argv[]) {
         NULL, 0, NULL,          // *saddr, sport, *sif
         0, 0,                   // lstrict, cstrict
         NULL, 0,                // *lsaddr, lsport
-        0,                      // eignore
+        1,                      // eignore
     };
 
     int lsock; /* Listen socket */
@@ -388,11 +390,11 @@ int main(int argc, char *argv[]) {
                 debug_level = DEBUG_LEVEL_DEBUG;
 
                 break;
-            case 'a': /* --laddr */
+            case 'a': /* --listen-address */
                 s.laddr = optarg;
 
                 break;
-            case 'b': /* --lport */
+            case 'b': /* --listen-port */
                 s.lport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
@@ -402,19 +404,19 @@ int main(int argc, char *argv[]) {
                 }
 
                 break;
-            case 'c': /* --lif */
+            case 'c': /* --listeninterface */
                 s.lif = optarg;
 
                 break;
-            case 'g': /* --caddr */
+            case 'g': /* --connect-address */
                 s.caddr = optarg;
 
                 break;
-            case 'h': /* --chost */
+            case 'h': /* --connect-host */
                 s.chost = optarg;
 
                 break;
-            case 'i': /* --cport */
+            case 'i': /* --connect-port */
                 s.cport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
@@ -424,11 +426,11 @@ int main(int argc, char *argv[]) {
                 }
 
                 break;
-            case 'm': /* --saddr */
+            case 'm': /* --send-address */
                 s.saddr = optarg;
 
                 break;
-            case 'n': /* --sport */
+            case 'n': /* --send-port */
                 s.sport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
@@ -438,23 +440,23 @@ int main(int argc, char *argv[]) {
                 }
 
                 break;
-            case 'o': /* --sif */
+            case 'o': /* --send-interface */
                 s.sif = optarg;
 
                 break;
-            case 'x': /* --lstrict */
+            case 'x': /* --listen-address-strict */
                 s.lstrict = 1;
 
                 break;
-            case 'y': /* --cstrict */
+            case 'y': /* --connect-address-strict */
                 s.cstrict = 1;
 
                 break;
-            case 'k': /* --saddr */
+            case 'k': /* --listen-sender-address */
                 s.lsaddr = optarg;
 
                 break;
-            case 'l': /* --sport */
+            case 'l': /* --listen-sender-port */
                 s.lsport = atoi(optarg);
                 if (errno != EOK) {
                     perror("atoi");
@@ -464,8 +466,12 @@ int main(int argc, char *argv[]) {
                 }
 
                 break;
-            case 'z': /* --send-ignore-errors */
+            case 'r': /* --ignore-errors */
                 s.eignore = 1;
+
+                break;
+            case 's': /* --stop-errors */
+                s.eignore = 0;
 
                 break;
             default:
