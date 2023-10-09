@@ -92,7 +92,7 @@ $(document).ready(function(){initNavTree('md__r_e_a_d_m_e.html',''); initResizab
   <div class="headertitle"><div class="title">udp-redirect</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested to run on Linux x64 and MacOS / Darwin arm64.</p>
+<div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.</p>
 <p>Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.</p>
 <p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
@@ -108,8 +108,7 @@ Compile</h1>
 Run</h1>
 <div class="fragment"><div class="line">./udp-redirect \</div>
 <div class="line">    --listen-port 51821 \</div>
-<div class="line">    --connect-host example.endpoint.net --connect-port 51822 \</div>
-<div class="line">    --ignore-errors</div>
+<div class="line">    --connect-host example.endpoint.net --connect-port 51822</div>
 </div><!-- fragment --><div class="fragment"><div class="line">./udp-redirect \</div>
 <div class="line">    --debug \</div>
 <div class="line">    --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0 \</div>
@@ -117,8 +116,7 @@ Run</h1>
 <div class="line">    --connect-host example.endpoint.net --connect-port 51822 \</div>
 <div class="line">        --connect-address-strict \</div>
 <div class="line">    --send-interface utun5 \</div>
-<div class="line">    --listen-sender-address 192.168.1.1 --listen-sender-port 51820 \</div>
-<div class="line">    --ignore-errors</div>
+<div class="line">    --listen-sender-address 192.168.1.1 --listen-sender-port 51820</div>
 </div><!-- fragment --><div class="fragment"><div class="line">graph TD</div>
 <div class="line">    A[&quot;Wireguard Client &lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;IP: 192.168.1.1&lt;br/&gt;Port: 51820&quot;] &lt;--&gt; B(&quot;Receive on:&lt;br/&gt;IP: 192.168.1.32 (--listen-address) (optional)&lt;br/&gt;Port: 51821 (--listen-port)&lt;br/&gt;Interface: en0 (--listen-interface) (optional)&lt;br/&gt;&lt;br/&gt;Receive from: (optional)&lt;br/&gt;IP: 192.168.1.1 (--listen-sender-address) (optional)&lt;br/&gt;Port: 51820 (--listen-sender-port) (optional)&lt;br/&gt;Only receive from Wireguard Client (--listen-address-strict) (optional)&lt;br/&gt;&lt;br/&gt;UDP Redirector&lt;br/&gt;&lt;br/&gt;Send to:&lt;br/&gt;Host: example.endpoint.net (--connect-host)&lt;/br&gt;Port: 51822 (--connect-port)&lt;br/&gt;Only receive from Wireguard Server (--connect-address-strict) (optional)&lt;br/&gt;&lt;br/&gt;Send from:&lt;br/&gt;Interface: utun5 (--sender-interface) (optional)&lt;br/&gt;&lt;br/&gt;&quot;)</div>
 <div class="line">    B &lt;--&gt; C[&quot;Listen on:&lt;br/&gt;Host: example.endpoint.net&lt;br/&gt;Port: 51822&lt;br/&gt;&lt;br/&gt;Wireguard Server&quot;]</div>
@@ -163,11 +161,11 @@ Connect</h2>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--connect-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--connect-host</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect host, overwrites caddr if both are specified.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-host</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect host, overwrites <code>connect-host</code> if both are specified.    </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--connect-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>required</em>   </td><td class="markdownTableBodyNone">Connect port.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--connect-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from the connect caddr / cport, otherwise accept from all sources.   </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from <code>connect-host</code> / <code>connect-port</code>, otherwise accept from all sources.   </td></tr>
 </table>
 <h1><a class="anchor" id="autotoc_md9"></a>
 Sender</h1>
@@ -199,7 +197,9 @@ Miscellaneous</h1>
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--ignore-errors</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting.   </td></tr>
+<td class="markdownTableBodyNone"><code>--ignore-errors</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. *(default)*    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><code>--stop-errors</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Stop on most receive or send errors (host / network unreachable, etc.)   </td></tr>
 </table>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
