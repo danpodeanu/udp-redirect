@@ -3,6 +3,7 @@ var udp_redirect_8c =
     [ "settings", "structsettings.html", "structsettings" ],
     [ "DEBUG", "udp-redirect_8c.html#ac1f6fbe3701c17626b9d9222002790a3", null ],
     [ "EOK", "udp-redirect_8c.html#acf2e4414e0bf0d331a111e70f9317434", null ],
+    [ "ERRNO_IGNORE_CHECK", "udp-redirect_8c.html#ac55492e92f1e5fde0a623ffdf45671e9", null ],
     [ "ERRNO_IGNORE_SET", "udp-redirect_8c.html#a683d9394d63aedb7ea0eca78e619156e", null ],
     [ "MAX_ERRNO", "udp-redirect_8c.html#a9998f145d5911cecdac6aa347ad08559", null ],
     [ "NETWORK_BUFFER_SIZE", "udp-redirect_8c.html#a4979fa449090ea6181c2f0a91fe512e7", null ],

@@ -62,7 +62,12 @@
 /**
   * Set the errno ignore boolean for a specific errno
   */
-#define ERRNO_IGNORE_SET(X, Y) if ((Y) >= 0 && (Y) < MAX_ERRNO) (X)[(Y)] = 1;
+#define ERRNO_IGNORE_SET(X, Y) if ((Y) >= 0 && (Y) < MAX_ERRNO) (X)[(Y)] = 1
+
+/**
+  * Check if errno is in declared set
+  */
+#define ERRNO_IGNORE_CHECK(X, Y) ((Y) >= 0 && (Y) < MAX_ERRNO && (X)[(Y)] == 1)
 
 /**
  * @brief The available debug levels.
@@ -585,6 +590,7 @@ int main(int argc, char *argv[]) {
     memset(errno_ignore, 0, MAX_ERRNO * sizeof(unsigned char));
 
     ERRNO_IGNORE_SET(errno_ignore, EINTR); /* Always ignore EINTR */
+
     if (s.eignore == 1) { /* List of harmless recvfrom / sendto errors. Possibly incorrect. */
         ERRNO_IGNORE_SET(errno_ignore, EAGAIN);
         ERRNO_IGNORE_SET(errno_ignore, EHOSTUNREACH);
@@ -626,7 +632,7 @@ int main(int argc, char *argv[]) {
         if (ufds[0].revents & POLLIN || ufds[0].revents & POLLPRI) {
             if ((recvfrom_retval = recvfrom(lsock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
-                if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
+                if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                     perror("recvfrom");
                     DEBUG(DEBUG_LEVEL_INFO, "Listen cannot receive (%d)", errno);
 
@@ -660,7 +666,7 @@ int main(int argc, char *argv[]) {
 
                     if ((sendto_retval = sendto(ssock, network_buffer, recvfrom_retval, 0,
                                     (struct sockaddr *)&caddr, sizeof(caddr))) == -1) {
-                        if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
+                        if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                             perror("sendto");
                             DEBUG(DEBUG_LEVEL_ERROR, "Cannot send packet to send port (%d)", errno);
 
@@ -686,7 +692,7 @@ int main(int argc, char *argv[]) {
         if (ufds[1].revents & POLLIN || ufds[1].revents & POLLPRI) {
             if ((recvfrom_retval = recvfrom(ssock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
-                if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
+                if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                     perror("recvfrom");
                     DEBUG(DEBUG_LEVEL_INFO, "Send cannot receive packet (%d)", errno);
 
@@ -709,7 +715,7 @@ int main(int argc, char *argv[]) {
 
                     if ((sendto_retval = sendto(lsock, network_buffer, recvfrom_retval, 0,
                                     (struct sockaddr *)&previous_endpoint, sizeof(previous_endpoint))) == -1) {
-                        if (errno < 0 || errno > MAX_ERRNO || errno_ignore[errno] == 0) {
+                        if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                             perror("sendto");
                             DEBUG(DEBUG_LEVEL_INFO, "Cannot send packet to listen port (%d)", errno);
 
