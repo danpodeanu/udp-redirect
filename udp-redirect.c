@@ -801,8 +801,8 @@ int main(int argc, char *argv[]) {
                             exit(EXIT_FAILURE);
                         }
                     } else { // At least one byte was sent, record it
-                        st.count_listen_packet_send++;
-                        st.count_listen_byte_send += sendto_retval;
+                        st.count_connect_packet_send++;
+                        st.count_connect_byte_send += sendto_retval;
                     }
 
                     DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
@@ -856,8 +856,8 @@ int main(int argc, char *argv[]) {
                             exit(EXIT_FAILURE);
                         }
                     } else { // At least one byte was sent, record it
-                        st.count_connect_packet_send++;
-                        st.count_connect_byte_send += sendto_retval;
+                        st.count_listen_packet_send++;
+                        st.count_listen_byte_send += sendto_retval;
                     }
 
                     DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
