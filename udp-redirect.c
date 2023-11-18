@@ -39,8 +39,8 @@
 #define DEBUG(lvl, fmt, ...) \
         do { \
             if ((debug_level) >= (lvl)) { \
-                fprintf(stderr, "%s:%d:%s(): " fmt "\n", __FILE__, \
-                    __LINE__, __func__, ##__VA_ARGS__); \
+                fprintf(stderr, "%s:%d:%d:%s(): " fmt "\n", __FILE__, \
+                    __LINE__, (int)(time(NULL)), __func__, ##__VA_ARGS__); \
             } \
         } while (0)
 
@@ -48,6 +48,11 @@
  * The size of the network buffer used for receiving / sending packets
  */
 #define NETWORK_BUFFER_SIZE    65535
+
+/**
+ * The delay in seconds between displaying statistics
+ */
+#define STATS_DELAY_SECONDS    60
 
 /**
  * @brief Readability: errno value for OK.
@@ -107,6 +112,8 @@ static struct option longopts[] = {
     { "ignore-errors",         no_argument,            NULL,           'r' }, ///< Ignore harmless recvfrom / sendto errors (default)
     { "stop-errors",           no_argument,            NULL,           's' }, ///< Do NOT ignore harmless recvfrom / sendto errors
 
+    { "stats",                 no_argument,            NULL,           'q' }, ///< Display stats every 60 seconds
+
     { NULL,                    0,                      NULL,            0 }
 };
 
@@ -128,7 +135,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
     fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
-    fprintf(stderr, "          [--verbose] [--debug]\n");
+    fprintf(stderr, "          [--stats] [--verbose] [--debug]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--verbose                            Verbose mode, can be specified multiple times (optional)\n");
     fprintf(stderr, "--debug                              Debug mode (optional)\n");
@@ -181,6 +188,41 @@ struct settings {
     int lsport;         ///< Listen port only expects packets from this port
 
     int eignore;        //< Ignore most recvfrom / sendto errors
+
+    int stats;          //< Display stats every 60 seconds
+};
+
+/**
+ * Record and display stats
+ */
+struct statistics {
+    time_t time_display_last;
+    time_t time_display_first;
+
+    unsigned long count_listen_packet_receive;
+    unsigned long count_listen_byte_receive;
+
+    unsigned long count_listen_packet_send;
+    unsigned long count_listen_byte_send;
+
+    unsigned long count_connect_packet_receive;
+    unsigned long count_connect_byte_receive;
+
+    unsigned long count_connect_packet_send;
+    unsigned long count_connect_byte_send;
+
+
+    unsigned long count_listen_packet_receive_total;
+    unsigned long count_listen_byte_receive_total;
+
+    unsigned long count_listen_packet_send_total;
+    unsigned long count_listen_byte_send_total;
+
+    unsigned long count_connect_packet_receive_total;
+    unsigned long count_connect_byte_receive_total;
+
+    unsigned long count_connect_packet_send_total;
+    unsigned long count_connect_byte_send_total;
 };
 
 /**
@@ -358,7 +400,24 @@ int main(int argc, char *argv[]) {
         0, 0,                   // lstrict, cstrict
         NULL, 0,                // *lsaddr, lsport
         1,                      // eignore
+        0,                      // stats
     };
+
+    struct statistics statistics_initializer = {
+        0,                      // time_display_last
+        0,                      // time_display_first
+        0, 0,                   // count_listen_packet_receive, count_listen_byte_receive
+        0, 0,                   // count_listen_packet_send, count_listen_byte_send
+        0, 0,                   // count_connect_packet_receive, count_connect_byte_receive
+        0, 0,                   // count_connect_packet_send, count_connect_byte_send
+        0, 0,                   // count_listen_packet_receive_total, count_listen_byte_receive_total
+        0, 0,                   // count_listen_packet_send_total, count_listen_byte_send_total
+        0, 0,                   // count_connect_packet_receive_total, count_connect_byte_receive_total
+        0, 0,                   // count_connect_packet_send_total, count_connect_byte_send_total
+    };
+    struct statistics st = statistics_initializer;
+
+    time_t now;
 
     int lsock; /* Listen socket */
     int ssock; /* Send socket */
@@ -479,6 +538,10 @@ int main(int argc, char *argv[]) {
                 s.eignore = 0;
 
                 break;
+            case 'q': /* --stats */
+                s.stats = 1;
+
+                break;
             default:
                 usage(argv0, NULL);
                 break;
@@ -555,6 +618,7 @@ int main(int argc, char *argv[]) {
     }
 
     DEBUG(DEBUG_LEVEL_INFO, "Ignore errors: %s", s.eignore?"ENABLED":"DISABLED");
+    DEBUG(DEBUG_LEVEL_INFO, "Display stats: %s", s.stats?"ENABLED":"DISABLED");
 
     DEBUG(DEBUG_LEVEL_INFO, "---- START ----");
 
@@ -603,17 +667,78 @@ int main(int argc, char *argv[]) {
 
     DEBUG(DEBUG_LEVEL_VERBOSE, "entering infinite loop");
 
+    st.time_display_first = time(NULL);
+
     while (1) {
         int poll_retval;
         int recvfrom_retval;
         int sendto_retval;
+
+        now = time(NULL);
 
         ufds[0].fd = lsock; ufds[0].events = POLLIN | POLLPRI; ufds[0].revents = 0;
         ufds[1].fd = ssock; ufds[1].events = POLLIN | POLLPRI; ufds[1].revents = 0;
 
         DEBUG(DEBUG_LEVEL_DEBUG, "waiting for readable sockets");
 
-        if ((poll_retval = poll(ufds, 2, -1)) == -1) {
+        if (s.stats && (now - st.time_display_last) > STATS_DELAY_SECONDS) {
+            int time_delta = now - st.time_display_last;
+            int time_delta_total = now - st.time_display_first;
+
+            if (time_delta < 1)
+                time_delta = 1;
+            if (time_delta_total < 1)
+                time_delta_total = 1;
+
+            st.count_listen_packet_receive_total += st.count_listen_packet_receive;
+            st.count_listen_byte_receive_total += st.count_listen_byte_receive;
+            st.count_listen_packet_send_total += st.count_listen_packet_send;
+            st.count_listen_byte_send_total += st.count_listen_byte_send;
+
+            st.count_connect_packet_receive_total += st.count_connect_packet_receive;
+            st.count_connect_byte_receive_total += st.count_connect_byte_receive;
+            st.count_connect_packet_send_total += st.count_connect_packet_send;
+            st.count_connect_byte_send_total += st.count_connect_byte_send;
+
+            DEBUG(DEBUG_LEVEL_INFO, "---- STATS %ds ----", STATS_DELAY_SECONDS);
+
+            DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: %ld (%.2f/s), listen:receive:bytes: %ld (%.2f/s)",
+                    st.count_listen_packet_receive, (float)st.count_listen_packet_receive / time_delta,
+                    st.count_listen_byte_receive, (float)st.count_listen_byte_receive / time_delta);
+            DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: %ld (%.2f/s), listen:send:bytes: %ld (%.2f/s)",
+                    st.count_listen_packet_send, (float)st.count_listen_packet_send / time_delta,
+                    st.count_listen_byte_send, (float)st.count_listen_byte_send / time_delta);
+            DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: %ld (%.2f/s), connect:receive:bytes: %ld (%.2f/s)",
+                    st.count_connect_packet_receive, (float)st.count_connect_packet_receive / time_delta,
+                    st.count_connect_byte_receive, (float)st.count_connect_byte_receive / time_delta);
+            DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: %ld (%.2f/s), connect:send:bytes: %ld (%.2f/s)",
+                    st.count_connect_packet_send, (float)st.count_connect_packet_send / time_delta,
+                    st.count_connect_byte_send, (float)st.count_connect_byte_send / time_delta);
+
+            DEBUG(DEBUG_LEVEL_INFO, "---- STATS TOTAL ----");
+
+            DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: %ld (%.2f/s), listen:receive:bytes: %ld (%.2f/s)",
+                    st.count_listen_packet_receive_total, (float)st.count_listen_packet_receive_total / time_delta_total,
+                    st.count_listen_byte_receive_total, (float)st.count_listen_byte_receive_total / time_delta_total);
+            DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: %ld (%.2f/s), listen:send:bytes: %ld (%.2f/s)",
+                    st.count_listen_packet_send_total, (float)st.count_listen_packet_send_total / time_delta_total,
+                    st.count_listen_byte_send_total, (float)st.count_listen_byte_send_total / time_delta_total);
+            DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: %ld (%.2f/s), connect:receive:bytes: %ld (%.2f/s)",
+                    st.count_connect_packet_receive_total, (float)st.count_connect_packet_receive_total / time_delta_total,
+                    st.count_connect_byte_receive_total, (float)st.count_connect_byte_receive_total / time_delta_total);
+            DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: %ld (%.2f/s), connect:send:bytes: %ld (%.2f/s)",
+                    st.count_connect_packet_send_total, (float)st.count_connect_packet_send_total / time_delta_total,
+                    st.count_connect_byte_send_total, (float)st.count_connect_byte_send_total / time_delta_total);
+
+            st.count_listen_packet_receive = st.count_listen_byte_receive = \
+                st.count_listen_packet_send = st.count_listen_byte_send = \
+                st.count_connect_packet_receive = st.count_connect_byte_receive = \
+                st.count_connect_packet_send = st.count_connect_byte_send = 0;
+
+            st.time_display_last = now;
+        }
+
+        if ((poll_retval = poll(ufds, 2, 1000)) == -1) {
             if (errno == EINTR) {
                 continue;
             }
@@ -624,7 +749,7 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         }
         if (poll_retval == 0) {
-            DEBUG(DEBUG_LEVEL_DEBUG, "timeout");
+            DEBUG(DEBUG_LEVEL_DEBUG, "poll timeout");
             continue;
         }
 
@@ -640,6 +765,9 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (recvfrom_retval > 0) {
+                st.count_listen_packet_receive++;
+                st.count_listen_byte_receive += recvfrom_retval;
+
                 DEBUG(DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes",
                         inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
                         inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
@@ -672,6 +800,9 @@ int main(int argc, char *argv[]) {
 
                             exit(EXIT_FAILURE);
                         }
+                    } else { // At least one byte was sent, record it
+                        st.count_listen_packet_send++;
+                        st.count_listen_byte_send += sendto_retval;
                     }
 
                     DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
@@ -700,6 +831,9 @@ int main(int argc, char *argv[]) {
                 }
             }
             if (recvfrom_retval > 0) {
+                st.count_connect_packet_receive++;
+                st.count_connect_byte_receive += recvfrom_retval;
+
                 DEBUG(DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (SEND PORT): %d bytes",
                         inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
                         inet_ntop(AF_INET, &(ssock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(ssock_name.sin_port),
@@ -721,6 +855,9 @@ int main(int argc, char *argv[]) {
 
                             exit(EXIT_FAILURE);
                         }
+                    } else { // At least one byte was sent, record it
+                        st.count_connect_packet_send++;
+                        st.count_connect_byte_send += sendto_retval;
                     }
 
                     DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
