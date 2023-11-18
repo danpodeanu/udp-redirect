@@ -13,5 +13,6 @@ var structsettings =
     [ "lstrict", "structsettings.html#a0e6d5fa4db99610a8f5c302197df2f72", null ],
     [ "saddr", "structsettings.html#ab0ae900aaaa17fc9a66df172ee8ae102", null ],
     [ "sif", "structsettings.html#aca05989209d3cb086986065afacf88b6", null ],
-    [ "sport", "structsettings.html#a6144aeafdfb423cabed5f69eb96eb300", null ]
+    [ "sport", "structsettings.html#a6144aeafdfb423cabed5f69eb96eb300", null ],
+    [ "stats", "structsettings.html#a75f657baf41d582a2481708f1e89e135", null ]
 ];

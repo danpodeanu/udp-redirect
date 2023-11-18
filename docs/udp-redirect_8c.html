@@ -153,6 +153,8 @@ Include dependency graph for udp-redirect.c:</div>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsettings.html">settings</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structstatistics.html">statistics</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
@@ -160,6 +162,8 @@ Macros</h2></td></tr>
 <tr class="separator:ac1f6fbe3701c17626b9d9222002790a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4979fa449090ea6181c2f0a91fe512e7" id="r_a4979fa449090ea6181c2f0a91fe512e7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="udp-redirect_8c.html#a4979fa449090ea6181c2f0a91fe512e7">NETWORK_BUFFER_SIZE</a>&#160;&#160;&#160;65535</td></tr>
 <tr class="separator:a4979fa449090ea6181c2f0a91fe512e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1526da1b7af27479ae345836547f3209" id="r_a1526da1b7af27479ae345836547f3209"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="udp-redirect_8c.html#a1526da1b7af27479ae345836547f3209">STATS_DELAY_SECONDS</a>&#160;&#160;&#160;60</td></tr>
+<tr class="separator:a1526da1b7af27479ae345836547f3209"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf2e4414e0bf0d331a111e70f9317434" id="r_acf2e4414e0bf0d331a111e70f9317434"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="udp-redirect_8c.html#acf2e4414e0bf0d331a111e70f9317434">EOK</a>&#160;&#160;&#160;0</td></tr>
 <tr class="memdesc:acf2e4414e0bf0d331a111e70f9317434"><td class="mdescLeft">&#160;</td><td class="mdescRight">Readability: errno value for OK.  <br /></td></tr>
 <tr class="separator:acf2e4414e0bf0d331a111e70f9317434"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -239,8 +243,8 @@ DESCRIPTION</h1>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">        <span class="keywordflow">do</span> { \</div>
 <div class="line">            if ((debug_level) &gt;= (lvl)) { \</div>
-<div class="line">                fprintf(stderr, <span class="stringliteral">&quot;%s:%d:%s(): &quot;</span> fmt <span class="stringliteral">&quot;\n&quot;</span>, __FILE__, \</div>
-<div class="line">                    __LINE__, __func__, ##__VA_ARGS__); \</div>
+<div class="line">                fprintf(stderr, <span class="stringliteral">&quot;%s:%d:%d:%s(): &quot;</span> fmt <span class="stringliteral">&quot;\n&quot;</span>, __FILE__, \</div>
+<div class="line">                    __LINE__, (<span class="keywordtype">int</span>)(time(NULL)), __func__, ##__VA_ARGS__); \</div>
 <div class="line">            } \</div>
 <div class="line">        } <span class="keywordflow">while</span> (0)</div>
 </div><!-- fragment --><p>Standard debug macro requiring a locally defined debug level. Adapted from the excellent <a href="https://github.com/jleffler/soq/blob/master/src/libsoq/debug.h">https://github.com/jleffler/soq/blob/master/src/libsoq/debug.h</a></p>
@@ -349,6 +353,21 @@ DESCRIPTION</h1>
       </table>
 </div><div class="memdoc">
 <p>The size of the network buffer used for receiving / sending packets </p>
+
+</div>
+</div>
+<a id="a1526da1b7af27479ae345836547f3209" name="a1526da1b7af27479ae345836547f3209"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1526da1b7af27479ae345836547f3209">&#9670;&#160;</a></span>STATS_DELAY_SECONDS</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define STATS_DELAY_SECONDS&#160;&#160;&#160;60</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The delay in seconds between displaying statistics </p>
 
 </div>
 </div>
@@ -652,6 +671,8 @@ Here is the caller graph for this function:</div>
 <div class="line"> </div>
 <div class="line">    { <span class="stringliteral">&quot;ignore-errors&quot;</span>,         no_argument,            NULL,           <span class="charliteral">&#39;r&#39;</span> }, </div>
 <div class="line">    { <span class="stringliteral">&quot;stop-errors&quot;</span>,           no_argument,            NULL,           <span class="charliteral">&#39;s&#39;</span> }, </div>
+<div class="line"> </div>
+<div class="line">    { <span class="stringliteral">&quot;stats&quot;</span>,                 no_argument,            NULL,           <span class="charliteral">&#39;q&#39;</span> }, </div>
 <div class="line"> </div>
 <div class="line">    { NULL,                    0,                      NULL,            0 }</div>
 <div class="line">}</div>

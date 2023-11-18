@@ -1,12 +1,14 @@
 var udp_redirect_8c =
 [
     [ "settings", "structsettings.html", "structsettings" ],
+    [ "statistics", "structstatistics.html", "structstatistics" ],
     [ "DEBUG", "udp-redirect_8c.html#ac1f6fbe3701c17626b9d9222002790a3", null ],
     [ "EOK", "udp-redirect_8c.html#acf2e4414e0bf0d331a111e70f9317434", null ],
     [ "ERRNO_IGNORE_CHECK", "udp-redirect_8c.html#ac55492e92f1e5fde0a623ffdf45671e9", null ],
     [ "ERRNO_IGNORE_SET", "udp-redirect_8c.html#a683d9394d63aedb7ea0eca78e619156e", null ],
     [ "MAX_ERRNO", "udp-redirect_8c.html#a9998f145d5911cecdac6aa347ad08559", null ],
     [ "NETWORK_BUFFER_SIZE", "udp-redirect_8c.html#a4979fa449090ea6181c2f0a91fe512e7", null ],
+    [ "STATS_DELAY_SECONDS", "udp-redirect_8c.html#a1526da1b7af27479ae345836547f3209", null ],
     [ "DEBUG_LEVEL", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997", [
       [ "DEBUG_LEVEL_ERROR", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c", null ],
       [ "DEBUG_LEVEL_INFO", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997ad190887353b0664ff091b83d6387aa9b", null ],
