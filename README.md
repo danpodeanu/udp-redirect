@@ -41,8 +41,8 @@ or
 
 ```mermaid
 graph TD
-    A["Wireguard Client <br/><br/>Send from:<br/>IP: 192.168.1.1<br/>Port: 51820"] <--> B("Receive on:<br/>IP: 192.168.1.32 (--listen-address) (optional)<br/>Port: 51821 (--listen-port)<br/>Interface: en0 (--listen-interface) (optional)<br/><br/>Receive from: (optional)<br/>IP: 192.168.1.1 (--listen-sender-address) (optional)<br/>Port: 51820 (--listen-sender-port) (optional)<br/>Only receive from Wireguard Client (--listen-address-strict) (optional)<br/><br/>UDP Redirector<br/><br/>Send to:<br/>Host: example.endpoint.net (--connect-host)</br>Port: 51822 (--connect-port)<br/>Only receive from Wireguard Server (--connect-address-strict) (optional)<br/><br/>Send from:<br/>Interface: utun5 (--sender-interface) (optional)<br/><br/>")
-    B <--> C["Listen on:<br/>Host: example.endpoint.net<br/>Port: 51822<br/><br/>Wireguard Server"]
+    A["Wireguard Client<br/>--------------------<br/>Send from:<br/>IP: 192.168.1.1<br/>Port: 51820"] <--> B("UDP Redirector<br/>--------------------<br/>Receive on:<br/>IP: 192.168.1.32 (--listen-address) (optional)<br/>Port: 51821 (--listen-port)<br/>Interface: en0 (--listen-interface) (optional)<br/><br/>Receive from: (optional)<br/>IP: 192.168.1.1 (--listen-sender-address) (optional)<br/>Port: 51820 (--listen-sender-port) (optional)<br/>Only receive from Wireguard Client (--listen-address-strict) (optional)<br/>--------------------<br/>Send to:<br/>Host: example.endpoint.net (--connect-host)</br>Port: 51822 (--connect-port)<br/>Only receive from Wireguard Server (--connect-address-strict) (optional)<br/><br/>Send from:<br/>Interface: utun5 (--sender-interface) (optional)<br/><br/>")
+    B <--> C["Wireguard Server<br/>--------------------<br/>Listen on:<br/>Host: example.endpoint.net<br/>Port: 51822"]
 ```
 
 # Documentation
