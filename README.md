@@ -70,7 +70,7 @@ The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
 | ```--listen-address``` | address | *optional* | Listen address. |
-| ```--listen-port``` | port | *required* | Listen port. |
+| ```--listen-port``` | port | **required** | Listen port. |
 | ```--listen-interface``` | interface | *optional* | Listen interface name. |
 | ```--listen-address-strict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```listen-address-strict``` mode, only accept packets from the same source as the first packet, or the source specified by ```listen-sender-address``` and ```listen-sender-port```. |
 
@@ -80,9 +80,9 @@ The UDP redirector sends packets here (e.g., to the wireguard server):
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--connect-address``` | address | *required* | Connect address. |
-| ```--connect-host``` | address | *required* | Connect host, overwrites ```connect-host``` if both are specified. |
-| ```--connect-port``` | port | *required* | Connect port. |
+| ```--connect-address``` | address | **required** | Connect address. |
+| ```--connect-host``` | address | **required** | Connect host, overwrites ```connect-host``` if both are specified. |
+| ```--connect-port``` | port | **required** | Connect port. |
 | ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` / ```connect-port```, otherwise accept from all sources. |
 
 # Sender
