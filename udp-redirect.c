@@ -29,6 +29,7 @@
 #include <string.h>
 #include <math.h>
 #include <netdb.h>
+#include <time.h>
 
 /**
  * Standard debug macro requiring a locally defined debug level.
@@ -637,6 +638,7 @@ int main(int argc, char *argv[]) {
 
     endpoint.sin_addr.s_addr = 0; /* No packet received, no endpoint */
 
+    previous_endpoint.sin_family = AF_INET;
     if (s.lsaddr == NULL && s.lsport == 0) {
         previous_endpoint.sin_addr.s_addr = 0; /* No packet received, no previous endpoint */
     } else {

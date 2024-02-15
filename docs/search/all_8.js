@@ -1,7 +1,7 @@
 var searchData=
 [
   ['saddr_0',['saddr',['../structsettings.html#ab0ae900aaaa17fc9a66df172ee8ae102',1,'settings']]],
-  ['security_1',['security',['../md__r_e_a_d_m_e.html#autotoc_md10',1,'Listener security'],['../md__r_e_a_d_m_e.html#autotoc_md1',1,'Security']]],
+  ['security_1',['Security',['../md__r_e_a_d_m_e.html#autotoc_md10',1,'Listener security'],['../md__r_e_a_d_m_e.html#autotoc_md1',1,'Security']]],
   ['sender_2',['Sender',['../md__r_e_a_d_m_e.html#autotoc_md9',1,'']]],
   ['settings_3',['settings',['../structsettings.html',1,'']]],
   ['sif_4',['sif',['../structsettings.html#aca05989209d3cb086986065afacf88b6',1,'settings']]],
