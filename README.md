@@ -1,7 +1,7 @@
 # udp-redirect
 A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.
 
-Useful for redirecting UDP traffic (e.g., Wireguard VPN) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
+Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
 
 ![GitHub CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
