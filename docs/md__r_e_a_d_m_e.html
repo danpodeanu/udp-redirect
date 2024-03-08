@@ -122,6 +122,16 @@ Run</h1>
 </div><!-- fragment --><div class="fragment"><div class="line">graph TD</div>
 <div class="line">    A[&quot;--------------------&lt;br/&gt;Wireguard Client&lt;br/&gt;--------------------&lt;br/&gt;Send from:&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.1&lt;br/&gt;Port: 51820&quot;] &lt;--&gt; B(&quot;--------------------&lt;br/&gt;UDP Redirector&lt;br/&gt;--------------------&lt;br/&gt;Receive on:&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.32 (--listen-address) (optional)&lt;br/&gt;Port: 51821 (--listen-port)&lt;br/&gt;Interface: en0 (--listen-interface) (optional)&lt;br/&gt;---------------&lt;br/&gt;Receive from: (optional)&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.1 (--listen-sender-address) (optional)&lt;br/&gt;Port: 51820 (--listen-sender-port) (optional)&lt;br/&gt;Only receive from Wireguard Client (--listen-address-strict) (optional)&lt;br/&gt;---------------&lt;br/&gt;Send to:&lt;br/&gt;---------------&lt;br/&gt;Host: example.endpoint.net (--connect-host)&lt;/br&gt;Port: 51822 (--connect-port)&lt;br/&gt;Only receive from Wireguard Server (--connect-address-strict) (optional)&lt;br/&gt;---------------&lt;br/&gt;Send from:&lt;br/&gt;---------------&lt;br/&gt;Interface: utun5 (--sender-interface) (optional)&lt;br/&gt;&lt;br/&gt;&quot;)</div>
 <div class="line">    B &lt;--&gt; C[&quot;--------------------&lt;br/&gt;Wireguard Server&lt;br/&gt;--------------------&lt;br/&gt;Listen on:&lt;br/&gt;---------------&lt;br/&gt;Host: example.endpoint.net&lt;br/&gt;Port: 51822&quot;]</div>
+</div><!-- fragment --><p>Sample statistics output when invoked with <code>--stats</code>: </p><div class="fragment"><div class="line">---- STATS 60s ----</div>
+<div class="line">listen:receive:packets: 7.5K (122.4 /s), listen:receive:bytes: 3.6M (59.4K/s)</div>
+<div class="line">listen:send:packets: 12.8K (210.2 /s), listen:send:bytes: 13.8M (225.4K/s)</div>
+<div class="line">connect:receive:packets: 12.8K (210.2 /s), connect:receive:bytes: 13.8M (225.4K/s)</div>
+<div class="line">connect:send:packets: 7.5K (122.4 /s), connect:send:bytes: 3.6M (59.4K/s)</div>
+<div class="line">---- STATS TOTAL ----</div>
+<div class="line">listen:receive:packets: 45.8K (250.0 /s), listen:receive:bytes: 13.2M (72.4K/s)</div>
+<div class="line">listen:send:packets: 98.3K (537.1 /s), listen:send:bytes: 122.9M (671.4K/s)</div>
+<div class="line">connect:receive:packets: 98.3K (537.1 /s), connect:receive:bytes: 122.9M (671.4K/s)</div>
+<div class="line">connect:send:packets: 45.8K (250.0 /s), connect:send:bytes: 13.2M (72.4K/s)</div>
 </div><!-- fragment --><h1><a class="anchor" id="autotoc_md4"></a>
 Documentation</h1>
 <p>Doxygen generated documentation in <a href="docs/">docs</a>/index.html</p>

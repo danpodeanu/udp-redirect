@@ -21,8 +21,8 @@ var udp_redirect_8c =
       [ "DEBUG_LEVEL_VERBOSE", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997abef70e723b637a07777210af3cefc066", null ],
       [ "DEBUG_LEVEL_DEBUG", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997a3849ab144f4ec0bc1433ce1ccfa389f4", null ]
     ] ],
-    [ "int_to_human_char", "udp-redirect_8c.html#a774a720b67019e77416c5425e7b319ed", null ],
-    [ "int_to_human_value", "udp-redirect_8c.html#a03cd07206fcac8be7b3ce9794c9ddf37", null ],
+    [ "int_to_human_char", "udp-redirect_8c.html#a221a9f57d1507473ccaf7c3d11e732d8", null ],
+    [ "int_to_human_value", "udp-redirect_8c.html#a4c46a5b2b31514bfefb1b3102c0b6358", null ],
     [ "main", "udp-redirect_8c.html#a0ddf1224851353fc92bfbff6f499fa97", null ],
     [ "resolve_host", "udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6", null ],
     [ "socket_setup", "udp-redirect_8c.html#aca406131bb636c31134d300e0caae9b6", null ],
