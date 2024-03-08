@@ -409,12 +409,12 @@ char *resolve_host(int debug_level, const char *host) {
 }
 
 /**
- * Convert an unsigned long value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
+ * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
  * @param[in] value The value to be converted
  * @param[in] host The host to resolve
  * @return The numeric portion of the human readable value.
  */
-double int_to_human_value(unsigned long value) {
+double int_to_human_value(double value) {
     double dvalue = value;
     int count = 0;
 
@@ -427,12 +427,12 @@ double int_to_human_value(unsigned long value) {
 }
 
 /**
- * Convert an unsigned long value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
+ * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
  * @param[in] value The value to be converted
  * @param[in] host The host to resolve
  * @return The character (K, M, G, etc.) portion of the human readable value.
  */
-char int_to_human_char(unsigned long value) {
+char int_to_human_char(double value) {
     double dvalue = value;
     int count = 0;
     static const char human_readable_sizes[] = HUMAN_READABLE_SIZES;
@@ -473,48 +473,48 @@ void stats_display(int debug_level, struct statistics *st, time_t now) {
     DEBUG(DEBUG_LEVEL_INFO, "---- STATS %ds ----", STATS_DELAY_SECONDS);
 
     DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: " HRF " (" HRF "/s), listen:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_listen_packet_receive),
-            HUMAN_READABLE((float)st->count_listen_packet_receive / time_delta),
-            HUMAN_READABLE(st->count_listen_byte_receive),
-            HUMAN_READABLE((float)st->count_listen_byte_receive / time_delta));
+            HUMAN_READABLE((double)st->count_listen_packet_receive),
+            HUMAN_READABLE((double)st->count_listen_packet_receive / time_delta),
+            HUMAN_READABLE((double)st->count_listen_byte_receive),
+            HUMAN_READABLE((double)st->count_listen_byte_receive / time_delta));
     DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: " HRF " (" HRF "/s), listen:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_listen_packet_send),
-            HUMAN_READABLE((float)st->count_listen_packet_send / time_delta),
-            HUMAN_READABLE(st->count_listen_byte_send),
-            HUMAN_READABLE((float)st->count_listen_byte_send / time_delta));
+            HUMAN_READABLE((double)st->count_listen_packet_send),
+            HUMAN_READABLE((double)st->count_listen_packet_send / time_delta),
+            HUMAN_READABLE((double)st->count_listen_byte_send),
+            HUMAN_READABLE((double)st->count_listen_byte_send / time_delta));
     DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: " HRF " (" HRF "/s), connect:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_connect_packet_receive),
-            HUMAN_READABLE((float)st->count_connect_packet_receive / time_delta),
-            HUMAN_READABLE(st->count_connect_byte_receive),
-            HUMAN_READABLE((float)st->count_connect_byte_receive / time_delta));
+            HUMAN_READABLE((double)st->count_connect_packet_receive),
+            HUMAN_READABLE((double)st->count_connect_packet_receive / time_delta),
+            HUMAN_READABLE((double)st->count_connect_byte_receive),
+            HUMAN_READABLE((double)st->count_connect_byte_receive / time_delta));
     DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: " HRF " (" HRF "/s), connect:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_connect_packet_send),
-            HUMAN_READABLE((float)st->count_connect_packet_send / time_delta),
-            HUMAN_READABLE(st->count_connect_byte_send),
-            HUMAN_READABLE((float)st->count_connect_byte_send / time_delta));
+            HUMAN_READABLE((double)st->count_connect_packet_send),
+            HUMAN_READABLE((double)st->count_connect_packet_send / time_delta),
+            HUMAN_READABLE((double)st->count_connect_byte_send),
+            HUMAN_READABLE((double)st->count_connect_byte_send / time_delta));
 
     DEBUG(DEBUG_LEVEL_INFO, "---- STATS TOTAL ----");
 
     DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: " HRF " (" HRF "/s), listen:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_listen_packet_receive_total),
-            HUMAN_READABLE((float)st->count_listen_packet_receive_total / time_delta_total),
-            HUMAN_READABLE(st->count_listen_byte_receive_total),
-            HUMAN_READABLE((float)st->count_listen_byte_receive_total / time_delta_total));
+            HUMAN_READABLE((double)st->count_listen_packet_receive_total),
+            HUMAN_READABLE((double)st->count_listen_packet_receive_total / time_delta_total),
+            HUMAN_READABLE((double)st->count_listen_byte_receive_total),
+            HUMAN_READABLE((double)st->count_listen_byte_receive_total / time_delta_total));
     DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: " HRF " (" HRF "/s), listen:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_listen_packet_send_total),
-            HUMAN_READABLE((float)st->count_listen_packet_send_total / time_delta_total),
-            HUMAN_READABLE(st->count_listen_byte_send_total),
-            HUMAN_READABLE((float)st->count_listen_byte_send_total / time_delta_total));
+            HUMAN_READABLE((double)st->count_listen_packet_send_total),
+            HUMAN_READABLE((double)st->count_listen_packet_send_total / time_delta_total),
+            HUMAN_READABLE((double)st->count_listen_byte_send_total),
+            HUMAN_READABLE((double)st->count_listen_byte_send_total / time_delta_total));
     DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: " HRF " (" HRF "/s), connect:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_connect_packet_receive_total),
-            HUMAN_READABLE((float)st->count_connect_packet_receive_total / time_delta_total),
-            HUMAN_READABLE(st->count_connect_byte_receive_total),
-            HUMAN_READABLE((float)st->count_connect_byte_receive_total / time_delta_total));
+            HUMAN_READABLE((double)st->count_connect_packet_receive_total),
+            HUMAN_READABLE((double)st->count_connect_packet_receive_total / time_delta_total),
+            HUMAN_READABLE((double)st->count_connect_byte_receive_total),
+            HUMAN_READABLE((double)st->count_connect_byte_receive_total / time_delta_total));
     DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: " HRF " (" HRF "/s), connect:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE(st->count_connect_packet_send_total),
-            HUMAN_READABLE((float)st->count_connect_packet_send_total / time_delta_total),
-            HUMAN_READABLE(st->count_connect_byte_send_total),
-            HUMAN_READABLE((float)st->count_connect_byte_send_total / time_delta_total));
+            HUMAN_READABLE((double)st->count_connect_packet_send_total),
+            HUMAN_READABLE((double)st->count_connect_packet_send_total / time_delta_total),
+            HUMAN_READABLE((double)st->count_connect_byte_send_total),
+            HUMAN_READABLE((double)st->count_connect_byte_send_total / time_delta_total));
 
     st->count_listen_packet_receive = st->count_listen_byte_receive = \
         st->count_listen_packet_send = st->count_listen_byte_send = \

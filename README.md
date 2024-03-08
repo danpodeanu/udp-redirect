@@ -45,6 +45,20 @@ graph TD
     B <--> C["--------------------<br/>Wireguard Server<br/>--------------------<br/>Listen on:<br/>---------------<br/>Host: example.endpoint.net<br/>Port: 51822"]
 ```
 
+Sample statistics output when invoked with ```--stats```:
+```
+---- STATS 60s ----
+listen:receive:packets: 7.5K (122.4 /s), listen:receive:bytes: 3.6M (59.4K/s)
+listen:send:packets: 12.8K (210.2 /s), listen:send:bytes: 13.8M (225.4K/s)
+connect:receive:packets: 12.8K (210.2 /s), connect:receive:bytes: 13.8M (225.4K/s)
+connect:send:packets: 7.5K (122.4 /s), connect:send:bytes: 3.6M (59.4K/s)
+---- STATS TOTAL ----
+listen:receive:packets: 45.8K (250.0 /s), listen:receive:bytes: 13.2M (72.4K/s)
+listen:send:packets: 98.3K (537.1 /s), listen:send:bytes: 122.9M (671.4K/s)
+connect:receive:packets: 98.3K (537.1 /s), connect:receive:bytes: 122.9M (671.4K/s)
+connect:send:packets: 45.8K (250.0 /s), connect:send:bytes: 13.2M (72.4K/s)
+```
+
 # Documentation
 
 Doxygen generated documentation in [docs](docs/)/index.html
