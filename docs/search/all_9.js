@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['time_5fdisplay_5ffirst_0',['time_display_first',['../structstatistics.html#ae2cc21ddf17618ae0657c052ee9a613e',1,'statistics']]],
-  ['time_5fdisplay_5flast_1',['time_display_last',['../structstatistics.html#a2a0680c786a86eaa1f0f431c3a900821',1,'statistics']]]
+  ['readme_2emd_0',['README.md',['../_r_e_a_d_m_e_8md.html',1,'']]],
+  ['redirect_1',['udp-redirect',['../md__r_e_a_d_m_e.html',1,'']]],
+  ['resolve_5fhost_2',['resolve_host',['../udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6',1,'udp-redirect.c']]],
+  ['run_3',['Run',['../md__r_e_a_d_m_e.html#autotoc_md3',1,'']]]
 ];

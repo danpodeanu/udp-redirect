@@ -1,7 +1,6 @@
 var searchData=
 [
-  ['readme_2emd_0',['README.md',['../_r_e_a_d_m_e_8md.html',1,'']]],
-  ['redirect_1',['udp-redirect',['../md__r_e_a_d_m_e.html',1,'']]],
-  ['resolve_5fhost_2',['resolve_host',['../udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6',1,'udp-redirect.c']]],
-  ['run_3',['Run',['../md__r_e_a_d_m_e.html#autotoc_md3',1,'']]]
+  ['main_0',['main',['../udp-redirect_8c.html#a0ddf1224851353fc92bfbff6f499fa97',1,'udp-redirect.c']]],
+  ['max_5ferrno_1',['MAX_ERRNO',['../udp-redirect_8c.html#a9998f145d5911cecdac6aa347ad08559',1,'udp-redirect.c']]],
+  ['miscellaneous_2',['Miscellaneous',['../md__r_e_a_d_m_e.html#autotoc_md11',1,'']]]
 ];

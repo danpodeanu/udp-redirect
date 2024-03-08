@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['resolve_5fhost_0',['resolve_host',['../udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6',1,'udp-redirect.c']]]
+  ['main_0',['main',['../udp-redirect_8c.html#a0ddf1224851353fc92bfbff6f499fa97',1,'udp-redirect.c']]]
 ];

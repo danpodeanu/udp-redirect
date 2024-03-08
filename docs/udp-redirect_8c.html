@@ -174,10 +174,22 @@ Macros</h2></td></tr>
 <tr class="separator:acf2e4414e0bf0d331a111e70f9317434"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9998f145d5911cecdac6aa347ad08559" id="r_a9998f145d5911cecdac6aa347ad08559"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a>&#160;&#160;&#160;256</td></tr>
 <tr class="separator:a9998f145d5911cecdac6aa347ad08559"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7be36c4e113e68d8e2492bca25e3d139" id="r_a7be36c4e113e68d8e2492bca25e3d139"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7be36c4e113e68d8e2492bca25e3d139">ERRNO_IGNORE_INIT</a>(X)&#160;&#160;&#160;memset((X), 0, <a class="el" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a> * sizeof(unsigned char))</td></tr>
+<tr class="separator:a7be36c4e113e68d8e2492bca25e3d139"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a683d9394d63aedb7ea0eca78e619156e" id="r_a683d9394d63aedb7ea0eca78e619156e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a683d9394d63aedb7ea0eca78e619156e">ERRNO_IGNORE_SET</a>(X,  Y)&#160;&#160;&#160;if ((Y) &gt;= 0 &amp;&amp; (Y) &lt; <a class="el" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a>) (X)[(Y)] = 1</td></tr>
 <tr class="separator:a683d9394d63aedb7ea0eca78e619156e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac55492e92f1e5fde0a623ffdf45671e9" id="r_ac55492e92f1e5fde0a623ffdf45671e9"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac55492e92f1e5fde0a623ffdf45671e9">ERRNO_IGNORE_CHECK</a>(X,  Y)&#160;&#160;&#160;((Y) &gt;= 0 &amp;&amp; (Y) &lt; <a class="el" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a> &amp;&amp; (X)[(Y)] == 1)</td></tr>
 <tr class="separator:ac55492e92f1e5fde0a623ffdf45671e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a083665e5ba65ce84c1679f6dde27f2b5" id="r_a083665e5ba65ce84c1679f6dde27f2b5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a083665e5ba65ce84c1679f6dde27f2b5">HUMAN_READABLE_FORMAT</a>&#160;&#160;&#160;&quot;%.1lf%c&quot;</td></tr>
+<tr class="separator:a083665e5ba65ce84c1679f6dde27f2b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af8187649cc70fef7bc12e2b46132828f" id="r_af8187649cc70fef7bc12e2b46132828f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af8187649cc70fef7bc12e2b46132828f">HRF</a>&#160;&#160;&#160;<a class="el" href="#a083665e5ba65ce84c1679f6dde27f2b5">HUMAN_READABLE_FORMAT</a></td></tr>
+<tr class="separator:af8187649cc70fef7bc12e2b46132828f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aafd1385f667428995fb7726666f3b2dd" id="r_aafd1385f667428995fb7726666f3b2dd"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aafd1385f667428995fb7726666f3b2dd">HUMAN_READABLE</a>(X)&#160;&#160;&#160;<a class="el" href="#a03cd07206fcac8be7b3ce9794c9ddf37">int_to_human_value</a>((X)), <a class="el" href="#a774a720b67019e77416c5425e7b319ed">int_to_human_char</a>((X))</td></tr>
+<tr class="separator:aafd1385f667428995fb7726666f3b2dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaa7f127ff14ffb80d41f435f8c4212bb" id="r_aaa7f127ff14ffb80d41f435f8c4212bb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaa7f127ff14ffb80d41f435f8c4212bb">HUMAN_READABLE_SIZES</a>&#160;&#160;&#160;{ ' ', 'K', 'M', 'G', 'T', 'P', 'E' }</td></tr>
+<tr class="separator:aaa7f127ff14ffb80d41f435f8c4212bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a344ae63974c1221e332ef0429d0aa389" id="r_a344ae63974c1221e332ef0429d0aa389"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a344ae63974c1221e332ef0429d0aa389">HUMAN_READABLE_SIZES_COUNT</a>&#160;&#160;&#160;7</td></tr>
+<tr class="separator:a344ae63974c1221e332ef0429d0aa389"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -197,6 +209,12 @@ Functions</h2></td></tr>
 <tr class="separator:aca406131bb636c31134d300e0caae9b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a795c40580eb8389eeb92c007ba8910a6" id="r_a795c40580eb8389eeb92c007ba8910a6"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a795c40580eb8389eeb92c007ba8910a6">resolve_host</a> (int debug_level, const char *host)</td></tr>
 <tr class="separator:a795c40580eb8389eeb92c007ba8910a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a03cd07206fcac8be7b3ce9794c9ddf37" id="r_a03cd07206fcac8be7b3ce9794c9ddf37"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a03cd07206fcac8be7b3ce9794c9ddf37">int_to_human_value</a> (unsigned long value)</td></tr>
+<tr class="separator:a03cd07206fcac8be7b3ce9794c9ddf37"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a774a720b67019e77416c5425e7b319ed" id="r_a774a720b67019e77416c5425e7b319ed"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a774a720b67019e77416c5425e7b319ed">int_to_human_char</a> (unsigned long value)</td></tr>
+<tr class="separator:a774a720b67019e77416c5425e7b319ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af790d7453a6d33231f71e85d82e54173" id="r_af790d7453a6d33231f71e85d82e54173"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af790d7453a6d33231f71e85d82e54173">stats_display</a> (int debug_level, struct <a class="el" href="structstatistics.html">statistics</a> *st, time_t now)</td></tr>
+<tr class="separator:af790d7453a6d33231f71e85d82e54173"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ddf1224851353fc92bfbff6f499fa97" id="r_a0ddf1224851353fc92bfbff6f499fa97"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0ddf1224851353fc92bfbff6f499fa97">main</a> (int argc, char *argv[])</td></tr>
 <tr class="separator:a0ddf1224851353fc92bfbff6f499fa97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -287,6 +305,24 @@ DESCRIPTION</h1>
 
 </div>
 </div>
+<a id="a7be36c4e113e68d8e2492bca25e3d139" name="a7be36c4e113e68d8e2492bca25e3d139"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7be36c4e113e68d8e2492bca25e3d139">&#9670;&#160;</a></span>ERRNO_IGNORE_INIT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define ERRNO_IGNORE_INIT</td>
+          <td>(</td>
+          <td class="paramtype"></td>          <td class="paramname"><span class="paramname">X</span></td><td>)</td>
+          <td>&#160;&#160;&#160;memset((X), 0, <a class="el" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a> * sizeof(unsigned char))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Initialize errno ignore set </p>
+
+</div>
+</div>
 <a id="a683d9394d63aedb7ea0eca78e619156e" name="a683d9394d63aedb7ea0eca78e619156e"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a683d9394d63aedb7ea0eca78e619156e">&#9670;&#160;</a></span>ERRNO_IGNORE_SET</h2>
 
@@ -305,7 +341,85 @@ DESCRIPTION</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Set the errno ignore boolean for a specific errno </p>
+<p>Set errno ignore boolean for a specific errno </p>
+
+</div>
+</div>
+<a id="af8187649cc70fef7bc12e2b46132828f" name="af8187649cc70fef7bc12e2b46132828f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8187649cc70fef7bc12e2b46132828f">&#9670;&#160;</a></span>HRF</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define HRF&#160;&#160;&#160;<a class="el" href="#a083665e5ba65ce84c1679f6dde27f2b5">HUMAN_READABLE_FORMAT</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Shortcut for the above, for shorter printf </p>
+
+</div>
+</div>
+<a id="aafd1385f667428995fb7726666f3b2dd" name="aafd1385f667428995fb7726666f3b2dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aafd1385f667428995fb7726666f3b2dd">&#9670;&#160;</a></span>HUMAN_READABLE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define HUMAN_READABLE</td>
+          <td>(</td>
+          <td class="paramtype"></td>          <td class="paramname"><span class="paramname">X</span></td><td>)</td>
+          <td>&#160;&#160;&#160;<a class="el" href="#a03cd07206fcac8be7b3ce9794c9ddf37">int_to_human_value</a>((X)), <a class="el" href="#a774a720b67019e77416c5425e7b319ed">int_to_human_char</a>((X))</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Hardcoded invocations of int to human readable, compatible with HUMAN_READABLE_FORMAT in printf </p>
+
+</div>
+</div>
+<a id="a083665e5ba65ce84c1679f6dde27f2b5" name="a083665e5ba65ce84c1679f6dde27f2b5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a083665e5ba65ce84c1679f6dde27f2b5">&#9670;&#160;</a></span>HUMAN_READABLE_FORMAT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define HUMAN_READABLE_FORMAT&#160;&#160;&#160;&quot;%.1lf%c&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Hardcoded printf format for a human readable value made of a float and a char </p>
+
+</div>
+</div>
+<a id="aaa7f127ff14ffb80d41f435f8c4212bb" name="aaa7f127ff14ffb80d41f435f8c4212bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaa7f127ff14ffb80d41f435f8c4212bb">&#9670;&#160;</a></span>HUMAN_READABLE_SIZES</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define HUMAN_READABLE_SIZES&#160;&#160;&#160;{ ' ', 'K', 'M', 'G', 'T', 'P', 'E' }</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The human readable size suffixes </p>
+
+</div>
+</div>
+<a id="a344ae63974c1221e332ef0429d0aa389" name="a344ae63974c1221e332ef0429d0aa389"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a344ae63974c1221e332ef0429d0aa389">&#9670;&#160;</a></span>HUMAN_READABLE_SIZES_COUNT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define HUMAN_READABLE_SIZES_COUNT&#160;&#160;&#160;7</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The number of human readable size suffixes </p>
 
 </div>
 </div>
@@ -382,6 +496,56 @@ DESCRIPTION</h1>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
+<a id="a774a720b67019e77416c5425e7b319ed" name="a774a720b67019e77416c5425e7b319ed"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a774a720b67019e77416c5425e7b319ed">&#9670;&#160;</a></span>int_to_human_char()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char int_to_human_char </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Convert an unsigned long value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value to be converted </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">host</td><td>The host to resolve </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The character (K, M, G, etc.) portion of the human readable value. </dd></dl>
+
+</div>
+</div>
+<a id="a03cd07206fcac8be7b3ce9794c9ddf37" name="a03cd07206fcac8be7b3ce9794c9ddf37"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a03cd07206fcac8be7b3ce9794c9ddf37">&#9670;&#160;</a></span>int_to_human_value()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">double int_to_human_value </td>
+          <td>(</td>
+          <td class="paramtype">unsigned long</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Convert an unsigned long value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>The value to be converted </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">host</td><td>The host to resolve </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The numeric portion of the human readable value. </dd></dl>
+
+</div>
+</div>
 <a id="a0ddf1224851353fc92bfbff6f499fa97" name="a0ddf1224851353fc92bfbff6f499fa97"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a0ddf1224851353fc92bfbff6f499fa97">&#9670;&#160;</a></span>main()</h2>
 
@@ -424,13 +588,15 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="udp-redirect_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph.png" border="0" usemap="#audp-redirect_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph" alt=""/></div>
 <map name="audp-redirect_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph" id="audp-redirect_8c_a0ddf1224851353fc92bfbff6f499fa97_cgraph">
-<area shape="rect" title=" " alt="" coords="5,55,55,80"/>
+<area shape="rect" title=" " alt="" coords="5,80,55,106"/>
 <area shape="rect" href="udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6" title=" " alt="" coords="105,5,200,31"/>
-<area shape="poly" title=" " alt="" coords="54,55,104,35,106,40,56,60"/>
+<area shape="poly" title=" " alt="" coords="47,77,101,40,107,36,110,41,104,44,50,82"/>
 <area shape="rect" href="udp-redirect_8c.html#aca406131bb636c31134d300e0caae9b6" title=" " alt="" coords="103,55,202,80"/>
-<area shape="poly" title=" " alt="" coords="55,65,87,65,87,70,55,70"/>
-<area shape="rect" href="udp-redirect_8c.html#ae9a2954f00e12c29eff4ffd4e47f6d32" title=" " alt="" coords="124,104,181,130"/>
-<area shape="poly" title=" " alt="" coords="56,75,111,97,109,102,54,80"/>
+<area shape="poly" title=" " alt="" coords="54,85,87,78,88,84,56,90"/>
+<area shape="rect" href="udp-redirect_8c.html#af790d7453a6d33231f71e85d82e54173" title=" " alt="" coords="103,104,202,130"/>
+<area shape="poly" title=" " alt="" coords="55,95,88,102,87,107,54,100"/>
+<area shape="rect" href="udp-redirect_8c.html#ae9a2954f00e12c29eff4ffd4e47f6d32" title=" " alt="" coords="124,153,181,179"/>
+<area shape="poly" title=" " alt="" coords="51,104,104,140,112,144,109,149,101,144,48,108"/>
 </map>
 </div>
 
@@ -532,6 +698,50 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="udp-redirect_8c_aca406131bb636c31134d300e0caae9b6_icgraph.png" border="0" usemap="#audp-redirect_8c_aca406131bb636c31134d300e0caae9b6_icgraph" alt=""/></div>
 <map name="audp-redirect_8c_aca406131bb636c31134d300e0caae9b6_icgraph" id="audp-redirect_8c_aca406131bb636c31134d300e0caae9b6_icgraph">
 <area shape="rect" title=" " alt="" coords="103,5,202,31"/>
+<area shape="rect" href="udp-redirect_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,5,55,31"/>
+<area shape="poly" title=" " alt="" coords="87,21,55,21,55,16,87,16"/>
+</map>
+</div>
+
+</div>
+</div>
+<a id="af790d7453a6d33231f71e85d82e54173" name="af790d7453a6d33231f71e85d82e54173"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af790d7453a6d33231f71e85d82e54173">&#9670;&#160;</a></span>stats_display()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void stats_display </td>
+          <td>(</td>
+          <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>debug_level</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structstatistics.html">statistics</a> *</td>          <td class="paramname"><span class="paramname"><em>st</em>, </span></td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">time_t</td>          <td class="paramname"><span class="paramname"><em>now</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Display the stored stats </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">debug_level</td><td>The debug level to be used for the <a class="el" href="#ac1f6fbe3701c17626b9d9222002790a3">DEBUG()</a> macro </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">st</td><td>The statistics structure </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">now</td><td>The current time </td></tr>
+  </table>
+  </dd>
+</dl>
+<div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="udp-redirect_8c_af790d7453a6d33231f71e85d82e54173_icgraph.png" border="0" usemap="#audp-redirect_8c_af790d7453a6d33231f71e85d82e54173_icgraph" alt=""/></div>
+<map name="audp-redirect_8c_af790d7453a6d33231f71e85d82e54173_icgraph" id="audp-redirect_8c_af790d7453a6d33231f71e85d82e54173_icgraph">
+<area shape="rect" title=" " alt="" coords="103,5,201,31"/>
 <area shape="rect" href="udp-redirect_8c.html#a0ddf1224851353fc92bfbff6f499fa97" title=" " alt="" coords="5,5,55,31"/>
 <area shape="poly" title=" " alt="" coords="87,21,55,21,55,16,87,16"/>
 </map>

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['socket_5fsetup_0',['socket_setup',['../udp-redirect_8c.html#aca406131bb636c31134d300e0caae9b6',1,'udp-redirect.c']]]
+  ['resolve_5fhost_0',['resolve_host',['../udp-redirect_8c.html#a795c40580eb8389eeb92c007ba8910a6',1,'udp-redirect.c']]]
 ];
