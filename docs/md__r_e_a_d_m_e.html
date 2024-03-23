@@ -96,6 +96,7 @@ $(function(){initNavTree('md__r_e_a_d_m_e.html',''); initResizable(); });
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.</p>
 <p>Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.</p>
+<p>Single file source code for convenience.</p>
 <p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
 <h1><a class="anchor" id="autotoc_md1"></a>
@@ -105,9 +106,7 @@ Security</h1>
 Compile</h1>
 <div class="fragment"><div class="line"># make</div>
 </div><!-- fragment --><p>or</p>
-<div class="fragment"><div class="line"># gcc udp-redirect.c network.c settings.c statistics.c -o udp-redirect -Wall -O3</div>
-</div><!-- fragment --><p>or</p>
-<div class="fragment"><div class="line"># gcc *.c -o udp-redirect -Wall -O3</div>
+<div class="fragment"><div class="line"># gcc udp-redirect.c -o udp-redirect -Wall -O3</div>
 </div><!-- fragment --><h1><a class="anchor" id="autotoc_md3"></a>
 Run</h1>
 <div class="fragment"><div class="line">./udp-redirect \</div>
