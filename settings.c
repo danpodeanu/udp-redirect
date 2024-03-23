@@ -4,19 +4,31 @@
 
 #include "include/settings.h"
 
+/**
+ * Initialize settings.
+ * @param[out] s The settings structure to initialize.
+ */
 void settings_initialize(struct settings *s) {
-    /* Default command line arguments */
-    struct settings settings_empty = {
-        NULL, 0, NULL,          // *laddr, lport, *lif
-        NULL, NULL, 0,          // *caddr, *chost, cport
-        NULL, 0, NULL,          // *saddr, sport, *sif
-        0, 0,                   // lstrict, cstrict
-        NULL, 0,                // *lsaddr, lsport
-        1,                      // eignore
-        0,                      // stats
-    };
+    s->laddr = NULL;
+    s->lport = 0;
+    s->lif = NULL;
 
-    *s = settings_empty;
+    s->caddr = NULL;
+    s->chost = NULL;
+    s->cport = 0;
+
+    s->saddr = NULL;
+    s->sport = 0;
+    s->sif = NULL;
+
+    s->lstrict = 0;
+    s->cstrict = 0;
+
+    s->lsaddr = NULL;
+    s->lsport = 0;
+
+    s->eignore = 1;
+    s->stats = 0;
 }
 
 /**

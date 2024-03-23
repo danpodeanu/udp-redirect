@@ -3,21 +3,37 @@
 #include "include/statistics.h"
 #include "include/debug.h"
 
+/**
+ * Initialize statistics.
+ * @param[out] st The statistics structure to initialize.
+ */
 void statistics_initialize(struct statistics *st) {
-    struct statistics statistics_empty = {
-        0,                      // time_display_last
-        0,                      // time_display_first
-        0, 0,                   // count_listen_packet_receive, count_listen_byte_receive
-        0, 0,                   // count_listen_packet_send, count_listen_byte_send
-        0, 0,                   // count_connect_packet_receive, count_connect_byte_receive
-        0, 0,                   // count_connect_packet_send, count_connect_byte_send
-        0, 0,                   // count_listen_packet_receive_total, count_listen_byte_receive_total
-        0, 0,                   // count_listen_packet_send_total, count_listen_byte_send_total
-        0, 0,                   // count_connect_packet_receive_total, count_connect_byte_receive_total
-        0, 0,                   // count_connect_packet_send_total, count_connect_byte_send_total
-    };
+    st->time_display_last = 0;
+    st->time_display_first = 0;
 
-    *st = statistics_empty;
+    st->count_listen_packet_receive = 0;
+    st->count_listen_byte_receive = 0;
+
+    st->count_listen_packet_send = 0;
+    st->count_listen_byte_send = 0;
+
+    st->count_connect_packet_receive = 0;
+    st->count_connect_byte_receive = 0;
+
+    st->count_connect_packet_send = 0;
+    st->count_connect_byte_send = 0;
+
+    st->count_listen_packet_receive_total = 0;
+    st->count_listen_byte_receive_total = 0;
+
+    st->count_listen_packet_send_total = 0;
+    st->count_listen_byte_send_total = 0;
+
+    st->count_connect_packet_receive_total = 0;
+    st->count_connect_byte_receive_total = 0;
+
+    st->count_connect_packet_send_total = 0;
+    st->count_connect_byte_send_total = 0;
 }
 
 /**
