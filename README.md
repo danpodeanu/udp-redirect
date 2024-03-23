@@ -18,7 +18,11 @@ Supports enforcing the packet source for all received packets. This only provide
 
 or
 
-```# gcc udp-redirect.c -o udp-redirect -Wall -O3```
+```# gcc udp-redirect.c network.c settings.c statistics.c -o udp-redirect -Wall -O3```
+
+or
+
+```# gcc *.c -o udp-redirect -Wall -O3```
 
 ## Run
 

@@ -31,29 +31,15 @@
 #include <netdb.h>
 #include <time.h>
 
-/**
- * Standard debug macro requiring a locally defined debug level.
- * Adapted from the excellent https://github.com/jleffler/soq/blob/master/src/libsoq/debug.h
- *
- * Note that __VA_ARGS__ is a GCC extension; used for convenience to support DEBUG without format arguments.
- */
-#define DEBUG(lvl, fmt, ...) \
-        do { \
-            if ((debug_level) >= (lvl)) { \
-                fprintf(stderr, "%s:%d:%d:%s(): " fmt "\n", __FILE__, \
-                    __LINE__, (int)(time(NULL)), __func__, ##__VA_ARGS__); \
-            } \
-        } while (0)
+#include "include/debug.h"
+#include "include/statistics.h"
+#include "include/settings.h"
+#include "include/network.h"
 
 /**
  * The size of the network buffer used for receiving / sending packets
  */
 #define NETWORK_BUFFER_SIZE    65535
-
-/**
- * The delay in seconds between displaying statistics
- */
-#define STATS_DELAY_SECONDS    60
 
 /**
  * @brief Readability: errno value for OK.
@@ -79,41 +65,6 @@
   * Check if errno is in declared set
   */
 #define ERRNO_IGNORE_CHECK(X, Y) ((Y) >= 0 && (Y) < MAX_ERRNO && (X)[(Y)] == 1)
-
-/**
-  * Hardcoded printf format for a human readable value made of a float and a char
-  */
-#define HUMAN_READABLE_FORMAT "%.1lf%c"
-
-/**
-  * Shortcut for the above, for shorter printf
-  */
-#define HRF HUMAN_READABLE_FORMAT
-
-/**
-  * Hardcoded invocations of int to human readable, compatible with HUMAN_READABLE_FORMAT in printf
-  */
-#define HUMAN_READABLE(X) int_to_human_value((X)), int_to_human_char((X))
-
-/**
-  * The human readable size suffixes
-  */
-#define HUMAN_READABLE_SIZES { ' ', 'K', 'M', 'G', 'T', 'P', 'E' }
-
-/**
-  * The number of human readable size suffixes
-  */
-#define HUMAN_READABLE_SIZES_COUNT 7
-
-/**
- * @brief The available debug levels.
- */
-enum DEBUG_LEVEL {
-    DEBUG_LEVEL_ERROR = 0,      ///< Error messages
-    DEBUG_LEVEL_INFO = 1,       ///< Informational messages
-    DEBUG_LEVEL_VERBOSE = 2,    ///< Verbose messages
-    DEBUG_LEVEL_DEBUG = 3       ///< Debug messages
-};
 
 /**
  * Command line options.
@@ -149,380 +100,6 @@ static struct option longopts[] = {
 };
 
 /**
- * Displays the program usage and exit with error.
- *
- * @param[in] argv0 The program name as started, e.g., /usr/local/bin/udp_redirector
- * @param[in] message The error message, or NULL
- *
- */
-void usage(const char *argv0, const char *message) {
-    if (message != NULL)
-        fprintf(stderr, "%s\n", message);
-
-    fprintf(stderr, "Usage: %s\n", argv0);
-    fprintf(stderr, "          [--listen-address <address>] --listen-port <port> [--listen-interface <interface>]\n");
-    fprintf(stderr, "          --connect-address <address> | --connect-host <hostname> --connect-port <port>\n");
-    fprintf(stderr, "          [--send-address <address>] [--send-port <port>] [--send-interface <interface>]\n");
-    fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
-    fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
-    fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
-    fprintf(stderr, "          [--stats] [--verbose] [--debug]\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--verbose                            Verbose mode, can be specified multiple times (optional)\n");
-    fprintf(stderr, "--debug                              Debug mode (optional)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-address <address>           Listen address (optional)\n");
-    fprintf(stderr, "--listen-port <port>                 Listen port (required)\n");
-    fprintf(stderr, "--listen-interface <interface>       Listen interface name (optional)\n");
-    fprintf(stderr, "--listen-address-strict              Only receive packets from the same source as the first packet (optional)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--connect-address <address>          Connect address (required)\n");
-    fprintf(stderr, "--connect-host <hostname>            Connect host, overwrites caddr if both are specified (required)\n");
-    fprintf(stderr, "--connect-port <port>                Connect port (required)\n");
-    fprintf(stderr, "--connect-address-strict             Only receive packets from the connect caddr / cport (optional)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--send-address <address>             Send packets from address (optional)\n");
-    fprintf(stderr, "--send-port <port>                   Send packets from port (optional)\n");
-    fprintf(stderr, "--send-interface <interface>         Send packets from interface (optional)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-sender-address <address>    Listen endpoint only accepts packets from this source address (optional)\n");
-    fprintf(stderr, "--listen-sender-port <port>          Listen endpoint only accepts packets from this source port (optional)\n");
-    fprintf(stderr, "                                     (must be set together, --listen-address-strict is implied)\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--ignore-errors                      Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional) (default)\n");
-    fprintf(stderr, "--stop-errors                        Exit on most receive or send errors (unreachable, etc.) (optional)\n");
-    fprintf(stderr, "\n");
-
-    exit(EXIT_FAILURE);
-}
-
-/**
- * Store command line option values in one place.
- */
-struct settings {
-    char *laddr;        ///< Listen address
-    int lport;          ///< Listen port
-    char *lif;          ///< Listen interface
-
-    char *caddr;        ///< Connect address
-    char *chost;        ///< Connect host
-    int cport;          ///< Connect port
-
-    char *saddr;        ///< Send packets from address
-    int sport;          ///< Send packets from port
-    char *sif;          ///< Send packets from interface
-
-    int lstrict;        ///< Strict mode for listener (set endpoint on first packet arrival)
-    int cstrict;        ///< Strict mode for sender (only accept from caddr / cport)
-
-    char *lsaddr;       ///< Listen port expects packets from this address
-    int lsport;         ///< Listen port only expects packets from this port
-
-    int eignore;        //< Ignore most recvfrom / sendto errors
-
-    int stats;          //< Display stats every 60 seconds
-};
-
-/**
- * Record and display stats
- */
-struct statistics {
-    time_t time_display_last;
-    time_t time_display_first;
-
-    unsigned long count_listen_packet_receive;
-    unsigned long count_listen_byte_receive;
-
-    unsigned long count_listen_packet_send;
-    unsigned long count_listen_byte_send;
-
-    unsigned long count_connect_packet_receive;
-    unsigned long count_connect_byte_receive;
-
-    unsigned long count_connect_packet_send;
-    unsigned long count_connect_byte_send;
-
-
-    unsigned long count_listen_packet_receive_total;
-    unsigned long count_listen_byte_receive_total;
-
-    unsigned long count_listen_packet_send_total;
-    unsigned long count_listen_byte_send_total;
-
-    unsigned long count_connect_packet_receive_total;
-    unsigned long count_connect_byte_receive_total;
-
-    unsigned long count_connect_packet_send_total;
-    unsigned long count_connect_byte_send_total;
-};
-
-/**
- * Creates a UDP socket on the specified address, port and interface, returning the socket and
- * the socket name (if either arguments were NULL or 0).
- *
- * @param[in] debug_level The debug level to be used for the DEBUG() macro
- * @param[in] desc The caller description, added to debug messages
- * @param[in] xaddr The IPV4 address for the socket to be created, or NULL for INADDR_ANY
- * @param[in] xport The IPV4 port for the socket to be created, or 0 for random (decided by bind())
- * @param[in] xif The OS interface name to bind to, or NULL for all interfaces.
- * @param[out] xsock_name The name of the socket created.
- * @return The socket file descriptor as integer.
- *
- */
-int socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, struct sockaddr_in *xsock_name) {
-    int xsock;
-    const int enable = 1;
-    struct sockaddr_in addr;
-
-    /* Set up listening socket */
-    DEBUG(DEBUG_LEVEL_INFO, "%s socket: create", desc);
-    if ((xsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
-        perror("socket");
-        DEBUG(DEBUG_LEVEL_ERROR, "Cannot create DGRAM socket (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    addr.sin_family = AF_INET;
-
-    /* Address specified or any */
-    if (xaddr != NULL) {
-        if ((addr.sin_addr.s_addr = inet_addr(xaddr)) == INADDR_NONE) {
-            perror("inet_addr");
-            DEBUG(DEBUG_LEVEL_ERROR, "%s address invalid %s (%d)", desc, xaddr, errno);
-
-            exit(EXIT_FAILURE);
-        }
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to address %s", desc, xaddr);
-    } else {
-        addr.sin_addr.s_addr = INADDR_ANY;
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to address %s", desc, "ANY");
-    }
-
-    /* Port specified or any */
-    if (xport != 0) {
-        addr.sin_port = htons(xport);
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to port %d", desc, xport);
-    } else {
-        addr.sin_port = 0;
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to port %s", desc, "ANY");
-    }
-
-    if (xif != NULL) {
-#ifdef __MACH__
-        unsigned int xif_idx;
-
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to interface %s", desc, xif);
-
-        if ((xif_idx = if_nametoindex(xif)) == 0) {
-            perror("if_nametoindex");
-            DEBUG(DEBUG_LEVEL_ERROR, "Cannot get the interface ID (%d)", errno);
-
-            exit(EXIT_FAILURE);
-        }
-
-        if (setsockopt(xsock, IPPROTO_IP, IP_BOUND_IF, &xif_idx, sizeof(xif_idx)) == -1) {
-            perror("setsockopt");
-            DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
-
-            exit(EXIT_FAILURE);
-        }
-#elif __unix__
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to interface %s", desc, xif);
-
-        if (setsockopt(xsock, SOL_SOCKET, SO_BINDTODEVICE, xif, strlen(xif)) == -1) {
-            perror("setsockopt");
-            DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
-
-            exit(EXIT_FAILURE);
-        }
-#endif
-    } else {
-        DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind to interface %s", desc, "ANY");
-    }
-
-    DEBUG(DEBUG_LEVEL_INFO, "%s socket: reuse local address", desc);
-
-    if (setsockopt(xsock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
-        perror("setsockopt");
-        DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket SO_REUSEADDR (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    DEBUG(DEBUG_LEVEL_INFO, "%s socket: set nonblocking", desc);
-    if (fcntl(xsock, F_SETFL, O_NONBLOCK) == -1) {
-        perror("fcntl");
-        DEBUG(DEBUG_LEVEL_ERROR, "Cannot set socket O_NONBLOCK (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    DEBUG(DEBUG_LEVEL_INFO, "%s socket: bind", desc);
-    if (bind(xsock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
-        perror("bind");
-        DEBUG(DEBUG_LEVEL_ERROR, "Cannot bind socket (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    socklen_t xsock_name_len = sizeof(*xsock_name);
-    if (getsockname(xsock, (struct sockaddr *)xsock_name, &xsock_name_len) == -1) {
-        perror("getsockname");
-        DEBUG(DEBUG_LEVEL_ERROR, "Cannot get socket name (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    return xsock;
-}
-
-/**
- * Resolve a host to an IP address.
- * @param[in] debug_level The debug level to be used for the DEBUG() macro
- * @param[in] host The host to resolve
- * @return A newly allocated buffer containing the IP.
- */
-char *resolve_host(int debug_level, const char *host) {
-    struct hostent *host_info;
-    struct in_addr *address;
-    char *retval;
-
-    if ((host_info = gethostbyname(host)) == NULL) {
-        perror("gethostbyname");
-        DEBUG(DEBUG_LEVEL_INFO, "Could not resolve host %s (%d)", host, errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    address = (struct in_addr *)(host_info->h_addr);
-    if ((retval = strdup(inet_ntoa(*address))) == NULL) {
-        perror("strdup");
-        DEBUG(DEBUG_LEVEL_INFO, "Could not duplicate string (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
-
-    DEBUG(DEBUG_LEVEL_DEBUG, "Resolved %s to %s", host, strdup(inet_ntoa(*address)));
-
-    return retval;
-}
-
-/**
- * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
- * @param[in] value The value to be converted
- * @param[in] host The host to resolve
- * @return The numeric portion of the human readable value.
- */
-double int_to_human_value(double value) {
-    double dvalue = value;
-    int count = 0;
-
-    while (dvalue > 1000 && count < (HUMAN_READABLE_SIZES_COUNT - 1)) {
-        dvalue = dvalue / 1000;
-        count = count + 1;
-    }
-
-    return dvalue;
-}
-
-/**
- * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
- * @param[in] value The value to be converted
- * @param[in] host The host to resolve
- * @return The character (K, M, G, etc.) portion of the human readable value.
- */
-char int_to_human_char(double value) {
-    double dvalue = value;
-    int count = 0;
-    static const char human_readable_sizes[] = HUMAN_READABLE_SIZES;
-
-    while (dvalue > 1000 && count < (HUMAN_READABLE_SIZES_COUNT - 1)) {
-        dvalue = dvalue / 1000;
-        count = count + 1;
-    }
-
-    return human_readable_sizes[count];
-}
-
-/**
- * Display the stored stats
- * @param[in] debug_level The debug level to be used for the DEBUG() macro
- * @param[in] st The statistics structure
- * @param[in] now The current time
- */
-void stats_display(int debug_level, struct statistics *st, time_t now) {
-    int time_delta = now - st->time_display_last;
-    int time_delta_total = now - st->time_display_first;
-
-    if (time_delta < 1)
-        time_delta = 1;
-    if (time_delta_total < 1)
-        time_delta_total = 1;
-
-    st->count_listen_packet_receive_total += st->count_listen_packet_receive;
-    st->count_listen_byte_receive_total += st->count_listen_byte_receive;
-    st->count_listen_packet_send_total += st->count_listen_packet_send;
-    st->count_listen_byte_send_total += st->count_listen_byte_send;
-
-    st->count_connect_packet_receive_total += st->count_connect_packet_receive;
-    st->count_connect_byte_receive_total += st->count_connect_byte_receive;
-    st->count_connect_packet_send_total += st->count_connect_packet_send;
-    st->count_connect_byte_send_total += st->count_connect_byte_send;
-
-    DEBUG(DEBUG_LEVEL_INFO, "---- STATS %ds ----", STATS_DELAY_SECONDS);
-
-    DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: " HRF " (" HRF "/s), listen:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_listen_packet_receive),
-            HUMAN_READABLE((double)st->count_listen_packet_receive / time_delta),
-            HUMAN_READABLE((double)st->count_listen_byte_receive),
-            HUMAN_READABLE((double)st->count_listen_byte_receive / time_delta));
-    DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: " HRF " (" HRF "/s), listen:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_listen_packet_send),
-            HUMAN_READABLE((double)st->count_listen_packet_send / time_delta),
-            HUMAN_READABLE((double)st->count_listen_byte_send),
-            HUMAN_READABLE((double)st->count_listen_byte_send / time_delta));
-    DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: " HRF " (" HRF "/s), connect:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_connect_packet_receive),
-            HUMAN_READABLE((double)st->count_connect_packet_receive / time_delta),
-            HUMAN_READABLE((double)st->count_connect_byte_receive),
-            HUMAN_READABLE((double)st->count_connect_byte_receive / time_delta));
-    DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: " HRF " (" HRF "/s), connect:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_connect_packet_send),
-            HUMAN_READABLE((double)st->count_connect_packet_send / time_delta),
-            HUMAN_READABLE((double)st->count_connect_byte_send),
-            HUMAN_READABLE((double)st->count_connect_byte_send / time_delta));
-
-    DEBUG(DEBUG_LEVEL_INFO, "---- STATS TOTAL ----");
-
-    DEBUG(DEBUG_LEVEL_INFO, "listen:receive:packets: " HRF " (" HRF "/s), listen:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_listen_packet_receive_total),
-            HUMAN_READABLE((double)st->count_listen_packet_receive_total / time_delta_total),
-            HUMAN_READABLE((double)st->count_listen_byte_receive_total),
-            HUMAN_READABLE((double)st->count_listen_byte_receive_total / time_delta_total));
-    DEBUG(DEBUG_LEVEL_INFO, "listen:send:packets: " HRF " (" HRF "/s), listen:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_listen_packet_send_total),
-            HUMAN_READABLE((double)st->count_listen_packet_send_total / time_delta_total),
-            HUMAN_READABLE((double)st->count_listen_byte_send_total),
-            HUMAN_READABLE((double)st->count_listen_byte_send_total / time_delta_total));
-    DEBUG(DEBUG_LEVEL_INFO, "connect:receive:packets: " HRF " (" HRF "/s), connect:receive:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_connect_packet_receive_total),
-            HUMAN_READABLE((double)st->count_connect_packet_receive_total / time_delta_total),
-            HUMAN_READABLE((double)st->count_connect_byte_receive_total),
-            HUMAN_READABLE((double)st->count_connect_byte_receive_total / time_delta_total));
-    DEBUG(DEBUG_LEVEL_INFO, "connect:send:packets: " HRF " (" HRF "/s), connect:send:bytes: " HRF " (" HRF "/s)",
-            HUMAN_READABLE((double)st->count_connect_packet_send_total),
-            HUMAN_READABLE((double)st->count_connect_packet_send_total / time_delta_total),
-            HUMAN_READABLE((double)st->count_connect_byte_send_total),
-            HUMAN_READABLE((double)st->count_connect_byte_send_total / time_delta_total));
-
-    st->count_listen_packet_receive = st->count_listen_byte_receive = \
-        st->count_listen_packet_send = st->count_listen_byte_send = \
-        st->count_connect_packet_receive = st->count_connect_byte_receive = \
-        st->count_connect_packet_send = st->count_connect_byte_send = 0;
-}
-
-/**
  * Main program function.
  *
  * @param[in] argc The count of arguments, including the program name.
@@ -537,30 +114,10 @@ int main(int argc, char *argv[]) {
 
     int ch; /* Used by getopt_long */
 
-    /* Command line arguments and default values */
-    struct settings s = {
-        NULL, 0, NULL,          // *laddr, lport, *lif
-        NULL, NULL, 0,          // *caddr, *chost, cport
-        NULL, 0, NULL,          // *saddr, sport, *sif
-        0, 0,                   // lstrict, cstrict
-        NULL, 0,                // *lsaddr, lsport
-        1,                      // eignore
-        0,                      // stats
-    };
+    /* Command line arguments */
+    struct settings s;
 
-    struct statistics statistics_initializer = {
-        0,                      // time_display_last
-        0,                      // time_display_first
-        0, 0,                   // count_listen_packet_receive, count_listen_byte_receive
-        0, 0,                   // count_listen_packet_send, count_listen_byte_send
-        0, 0,                   // count_connect_packet_receive, count_connect_byte_receive
-        0, 0,                   // count_connect_packet_send, count_connect_byte_send
-        0, 0,                   // count_listen_packet_receive_total, count_listen_byte_receive_total
-        0, 0,                   // count_listen_packet_send_total, count_listen_byte_send_total
-        0, 0,                   // count_connect_packet_receive_total, count_connect_byte_receive_total
-        0, 0,                   // count_connect_packet_send_total, count_connect_byte_send_total
-    };
-    struct statistics st = statistics_initializer;
+    struct statistics st;
 
     time_t now;
 
@@ -584,6 +141,9 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in previous_endpoint; /* Address where the previous packet was received from */
 
     unsigned char errno_ignore[MAX_ERRNO];
+
+    settings_initialize(&s);
+    statistics_initialize(&st);
 
     while ((ch = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
         switch (ch) {
@@ -826,8 +386,8 @@ int main(int argc, char *argv[]) {
 
         DEBUG(DEBUG_LEVEL_DEBUG, "waiting for readable sockets");
 
-        if (s.stats && (now - st.time_display_last) > STATS_DELAY_SECONDS) {
-            stats_display(debug_level, &st, now);
+        if (s.stats && (now - st.time_display_last) > STATISTICS_DELAY_SECONDS) {
+            statistics_display(debug_level, &st, now);
             st.time_display_last = now;
         }
 

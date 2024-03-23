@@ -1,12 +1,16 @@
 CC=gcc
-CFLAGS=-Wall -O3
+CFLAGS=-Wall -O3 -std=c99
 
 ODIR=obj
+IDIR=include
 
-_OBJ = udp-redirect.o
+_OBJ = settings.o network.o statistics.o udp-redirect.o
+_HEADER = statistics.h debug.h settings.h network.h
+
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+HEADER = $(patsubst %,$(IDIR)/%,$(_HEADER))
 
-$(ODIR)/%.o: %.c
+$(ODIR)/%.o: %.c $(HEADER)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 udp-redirect: $(OBJ)
