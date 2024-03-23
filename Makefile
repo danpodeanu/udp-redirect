@@ -4,8 +4,8 @@ CFLAGS=-Wall -O3
 ODIR=obj
 IDIR=include
 
-_OBJ = settings.o network.o statistics.o udp-redirect.o
-_HEADER = statistics.h debug.h settings.h network.h
+_OBJ = udp-redirect.o
+_HEADER =
 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 HEADER = $(patsubst %,$(IDIR)/%,$(_HEADER))

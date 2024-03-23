@@ -3,6 +3,8 @@ A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacO
 
 Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
 
+Single file source code for convenience.
+
 ![GitHub CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
@@ -18,11 +20,7 @@ Supports enforcing the packet source for all received packets. This only provide
 
 or
 
-```# gcc udp-redirect.c network.c settings.c statistics.c -o udp-redirect -Wall -O3```
-
-or
-
-```# gcc *.c -o udp-redirect -Wall -O3```
+```# gcc udp-redirect.c -o udp-redirect -Wall -O3```
 
 ## Run
 
