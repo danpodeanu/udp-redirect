@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['stats_5fdelay_5fseconds_0',['STATS_DELAY_SECONDS',['../udp-redirect_8c.html#a1526da1b7af27479ae345836547f3209',1,'udp-redirect.c']]]
+  ['statistics_5fdelay_5fseconds_0',['STATISTICS_DELAY_SECONDS',['../statistics_8h.html#aa1a29c97612ba647f485fae49439e74f',1,'statistics.h']]]
 ];

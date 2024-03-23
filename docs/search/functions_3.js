@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['socket_5fsetup_0',['socket_setup',['../udp-redirect_8c.html#aca406131bb636c31134d300e0caae9b6',1,'udp-redirect.c']]],
-  ['stats_5fdisplay_1',['stats_display',['../udp-redirect_8c.html#af790d7453a6d33231f71e85d82e54173',1,'udp-redirect.c']]]
+  ['settings_5finitialize_0',['settings_initialize',['../settings_8h.html#a7a34b83efc5dbf0c7a938d9f07fdbccb',1,'settings_initialize(struct settings *s):&#160;settings.c'],['../settings_8c.html#a7a34b83efc5dbf0c7a938d9f07fdbccb',1,'settings_initialize(struct settings *s):&#160;settings.c']]],
+  ['socket_5fsetup_1',['socket_setup',['../network_8h.html#aca406131bb636c31134d300e0caae9b6',1,'socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, struct sockaddr_in *xsock_name):&#160;network.c'],['../network_8c.html#aca406131bb636c31134d300e0caae9b6',1,'socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, struct sockaddr_in *xsock_name):&#160;network.c']]],
+  ['statistics_5fdisplay_2',['statistics_display',['../statistics_8h.html#af333d2c7ec6c46fdf5ba1ede197c9fc4',1,'statistics_display(int debug_level, struct statistics *st, time_t now):&#160;statistics.c'],['../statistics_8c.html#af333d2c7ec6c46fdf5ba1ede197c9fc4',1,'statistics_display(int debug_level, struct statistics *st, time_t now):&#160;statistics.c']]],
+  ['statistics_5finitialize_3',['statistics_initialize',['../statistics_8h.html#af6d101333c4654c64f400cedab535cbe',1,'statistics_initialize(struct statistics *st):&#160;statistics.c'],['../statistics_8c.html#af6d101333c4654c64f400cedab535cbe',1,'statistics_initialize(struct statistics *st):&#160;statistics.c']]]
 ];
