@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
 
     if ((s.lsaddr != NULL && s.lsport == 0) ||
             (s.lsaddr == NULL && s.lsport != 0)) {
-        usage(argv0, "Options lsport and csport must either both be specified or none");
+        usage(argv0, "Options --listen-sender-port and --list-sender-address must either both be specified or none");
     }
 
     /* Set strict mode if using lsport and csport */

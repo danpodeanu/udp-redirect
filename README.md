@@ -1,7 +1,7 @@
 # udp-redirect
 A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.
 
-Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.
+Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
 
 Single file source code for convenience.
 
@@ -77,39 +77,39 @@ Runs in foreground and expects external process control (svscan, nohup, etc.)
 | --- | --- | --- | --- |
 | ```--verbose``` | | *optional* | Verbose mode, can be specified multiple times. |
 | ```--debug``` | | *optional* | Debug mode (e.g., very verbose). |
-| ```--stats``` | | *optional* | Display send/receive and resource consumption every 60 seconds. |
+| ```--stats``` | | *optional* | Display sent/received bytes statistics every 60 seconds. |
 
 ## Listener
 
-The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here.
+The UDP sender (e.g., wireguard client) sends packets to the UDP redirector specified below.
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--listen-address``` | address | *optional* | Listen address. |
+| ```--listen-address``` | ipv4 address | *optional* | Listen address, defaults to INADDR_ANY. |
 | ```--listen-port``` | port | **required** | Listen port. |
 | ```--listen-interface``` | interface | *optional* | Listen interface name. |
 | ```--listen-address-strict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```listen-address-strict``` mode, only accept packets from the same source as the first packet, or the source specified by ```listen-sender-address``` and ```listen-sender-port```. |
 
 ## Connect
 
-The UDP redirector sends packets here (e.g., to the wireguard server):
+The UDP redirector sends packets to the endpoint specified below.
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--connect-address``` | address | **required** | Connect address. |
-| ```--connect-host``` | address | **required** | Connect host, overwrites ```connect-host``` if both are specified. |
+| ```--connect-address``` | ipv4 address | **required** | Connect address. |
+| ```--connect-host``` | hostname | **required** | Connect host, overwrites ```connect-address``` if both are specified. |
 | ```--connect-port``` | port | **required** | Connect port. |
-| ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` / ```connect-port```, otherwise accept from all sources. |
+| ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` and ```connect-port```, otherwise accept from all sources. |
 
 # Sender
 
-The UDP redirector sends packets from here (e.g., to the wireguard server). If any is missing, it will be selected by the operating system (usually ```0.0.0.0```, random port, default interface).
+The UDP redirector sends packets from the local endpoint specified below. If any arguments are missing, it will be selected by the operating system (usually INADDR_ANY, random port, default interface).
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--send-address``` | address | *optional* | Send packets from address. |
-| ```--send-port``` | port | *optional* | Send packets from port. |
-| ```--send-interface``` | interface | *optional* | Send packets from interface. |
+| ```--send-address``` | ipv4 address | *optional* | Send packets from this address. |
+| ```--send-port``` | port | *optional* | Send packets from this port. |
+| ```--send-interface``` | interface | *optional* | Send packets from this interface name. |
 
 # Listener security
 
@@ -117,8 +117,8 @@ Both must be specified; listener drops packets if they do not arrive from this a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--listen-sender-address``` | address | *optional* | Listen endpoint only accepts packets from this source address. |
-| ```--listen-sender-port``` | port | *optional* | Listen endpoint only accepts packets from this source port (must be set together, ```--listen-strict``` is implied). |
+| ```--listen-sender-address``` | ipv4 address | *optional* | Listen endpoint only accepts packets from this source address. |
+| ```--listen-sender-port``` | port | *optional* | Listen endpoint only accepts packets from this source port (must be set together, ```--listen-address-strict``` is implied). |
 
 # Miscellaneous
 
