@@ -1,0 +1,205 @@
+.\" $Revision: 38329 $
+.\" MPlayer (C) 2000-2022 MPlayer Team
+.\" This man page was/is done by Gabucino, Diego Biurrun, Jonas Jermann
+.
+.\" --------------------------------------------------------------------------
+.\" Macro definitions
+.\" --------------------------------------------------------------------------
+.
+.\" define indentation for suboptions
+.nr SS 5
+.\" add new suboption
+.de IPs
+.IP "\\$1" \n(SS
+..
+.\" begin of first level suboptions, end with .RE
+.de RSs
+.RS 10
+..
+.\" begin of 2nd level suboptions
+.de RSss
+.PD 0
+.RS \n(SS+3
+..
+.\" end of 2nd level suboptions
+.de REss
+.RE
+.PD 1
+..
+.
+.\" --------------------------------------------------------------------------
+.\" Title
+.\" --------------------------------------------------------------------------
+.
+.TH udp-redirect 1 "2024-04-26" "udp-redirect"
+.
+.SH NAME
+udp-redirect  \- A simple yet flexible and very fast UDP redirector.
+.
+.\" --------------------------------------------------------------------------
+.\" Synopsis
+.\" --------------------------------------------------------------------------
+.
+.SH SYNOPSIS
+.na
+.nh
+.B udp-redirect
+[options]
+.\" [options] --listen-port <port> --connect-host <host> --connect-port <port>
+.ad
+.hy
+.
+.\" --------------------------------------------------------------------------
+.\" Description
+.\" --------------------------------------------------------------------------
+.
+.SH DESCRIPTION
+.B udp-redirect
+is simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.
+.PP
+Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, Minecraft, etc.) when doing it at
+a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
+.PP
+Supports enforcing the packet source for all received packets. This only provides modest
+security improvements as generating UDP packets is trivial.
+.\" --------------------------------------------------------------------------
+.\" Usage
+.\" --------------------------------------------------------------------------
+.
+.SH USAGE
+.
+.TP
+Command line arguments further below. The simplest usage only requires \fB--listen-port\fP, \fB--connect-host\fP and \fB--connect-port\fP arguments to be specified.
+.PP
+\fBExample:\fP udp-redirect --listen-port 51821 --connect-host example.endpoint.net --connect-port 51822
+.SH LISTENER OPTIONS
+.
+.TP
+The UDP redirector sends packets to the endpoint specified below.
+.
+.TP
+.B \--listen-address <ipv4 address>
+Listen address, defaults to INADDR_ANY. (optional)
+.
+.TP
+.B \--listen-port <port>
+Listen port. \fB(required)\fP
+.
+.TP
+.B \--listen-interface <interface>
+Listen interface name. (optional)
+.
+.TP
+.B \--listen-address-strict
+\fBSecurity:\fP By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In --listen-address-strict mode, only accept packets from the same source as the first packet, or the source specified by --listen-sender-address and --listen-sender-port. (optional)
+.
+.TP
+.B \--listen-sender-address <ipv4 address>
+Listen endpoint only accepts packets from this source address. (optional)
+.
+.TP
+.B \--listen-sender-port <port>
+Listen endpoint only accepts packets from this source port. (optional)
+.RE
+.sp 1
+.RS
+Both --listen-sender-address and --listen-sender-port must be set together; --listen-address-strict is implied.
+.RE
+.SH CONNECT OPTIONS
+.
+.TP
+The UDP redirector sends packets to the endpoint specified below.
+.
+.TP
+.B \--connect-address <ipv4 address>
+Connect address. \fB(required if --connect-host is not specified)\fP
+.
+.TP
+.B \--connect-host <hostname>
+Connect host. \fB(required if --connect-address is not specified)\fP
+.RE
+.sp 1
+.RS
+One of --connect-address or --connect-host are required. --connect-host will override --connect-address if both are specified.
+.RE
+.
+.TP
+.B \--connect-port <port>
+Connect port. \fB(required)\fP
+.
+.TP
+.B \--connect-address-strict
+\fBSecurity:\fP Only accept packets from --connect-host and --connect-port, otherwise accept from all sources. (optional)
+.SH SENDER OPTIONS
+.
+.TP
+The UDP redirector sends packets from the local endpoint specified below. If any arguments are missing, it will be selected by the operating system (usually INADDR_ANY, random port, default interface).
+.
+.TP
+.B \--send-address <ipv4 address>
+Send packets from this address. (optional)
+.
+.TP
+.B \--send-port <port>
+Send packets from this port. (optional)
+.
+.TP
+.B \--send-interface <interface>
+Send packets from this interface name. (optional)
+.SH MICELLANEOUS OPTIONS
+.
+.TP
+.B \--ignore-errors
+Ignore most receive or send errors (host / network unreachable, etc.) instead of exiting. (default) (optional)
+.
+.TP
+.B \--stop-errors
+Stop on most receive or send errors (host / network unreachable, etc.) (optional)
+.RE
+.sp 1
+.RS
+--ignore-errors and --stop-errors are opposite; the last in order of command line arguments takes precedence.
+.RE
+.SH DISPLAY OPTIONS
+.
+.TP
+.B \--verbose
+Verbose mode, can be specified multiple times. (optional)
+.
+.TP
+.B \--debug
+Debug mode (e.g., very verbose). (optional)
+.
+.
+.TP
+.B \--stats
+Display sent/received bytes statistics every 60 seconds. (optional)
+.\" --------------------------------------------------------------------------
+.\" Macro definitions
+.\" --------------------------------------------------------------------------
+.SH EXAMPLES
+.
+.PP
+Redirect all UDP packets incoming to port 51821 on all local addresses and interfaces to example.endpoint.net port 51822
+.PP
+udp-redirect --listen-port 51821 --connect-host example.endpoint.net --connect-port 51822
+.PP
+Listen on 192.168.1.32 port 51821 on interface en0. The listener expects packets from
+192.168.1.1 port 51820 and will discard all other packets. Connector connects to example.endpoint.net
+port 51822 and only expects packets from here. Send packets on interface utun5, from any IP, any port. Display
+stats and debug information.
+.PP
+udp-redirect --stats --debug --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0
+--listen-address-strict --connect-host example.endpoint.net --connect-port 51822 --connect-address-strict
+--send-interface utun5 --listen-sender-address 192.168.1.1 --listen-sender-port 51820
+.
+.\" --------------------------------------------------------------------------
+.\" Bugs, authors, standard disclaimer
+.\" --------------------------------------------------------------------------
+.SH AUTHORS
+udp-redirect was written by Dan Podeanu, pdan@esync.org
+.PP
+Get the latest source code or report an issue at at https://github.com/danpodeanu/udp-redirect
+.SH LICENSE
+GPL-2.0 https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+.\" end of file
