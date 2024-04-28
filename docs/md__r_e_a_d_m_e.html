@@ -95,7 +95,7 @@ $(function(){initNavTree('md__r_e_a_d_m_e.html',''); initResizable(); });
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a>A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.</p>
-<p>Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) where doing it at a different layer (e.g., from a firewall) is challenging / impossible. Does not modify the redirected packets.</p>
+<p>Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.</p>
 <p>Single file source code for convenience.</p>
 <p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
@@ -150,16 +150,16 @@ Debug</h2>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--debug</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Debug mode (e.g., very verbose).    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--stats</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Display send/receive and resource consumption every 60 seconds.   </td></tr>
+<td class="markdownTableBodyNone"><code>--stats</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Display sent/received bytes statistics every 60 seconds.   </td></tr>
 </table>
 <h2><a class="anchor" id="autotoc_md7"></a>
 Listener</h2>
-<p>The UDP sender (e.g., wireguard client) sends packets to the UDP redirector here.</p>
+<p>The UDP sender (e.g., wireguard client) sends packets to the UDP redirector specified below.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--listen-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-address</code>   </td><td class="markdownTableBodyNone">ipv4 address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen address, defaults to INADDR_ANY.    </td></tr>
 <tr class="markdownTableRowEven">
 <td class="markdownTableBodyNone"><code>--listen-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Listen port.    </td></tr>
 <tr class="markdownTableRowOdd">
@@ -169,31 +169,31 @@ Listener</h2>
 </table>
 <h2><a class="anchor" id="autotoc_md8"></a>
 Connect</h2>
-<p>The UDP redirector sends packets here (e.g., to the wireguard server):</p>
+<p>The UDP redirector sends packets to the endpoint specified below.</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--connect-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Connect address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-address</code>   </td><td class="markdownTableBodyNone">ipv4 address   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Connect address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--connect-host</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Connect host, overwrites <code>connect-host</code> if both are specified.    </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-host</code>   </td><td class="markdownTableBodyNone">hostname   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Connect host, overwrites <code>connect-address</code> if both are specified.    </td></tr>
 <tr class="markdownTableRowOdd">
 <td class="markdownTableBodyNone"><code>--connect-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><b>required</b>   </td><td class="markdownTableBodyNone">Connect port.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--connect-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from <code>connect-host</code> / <code>connect-port</code>, otherwise accept from all sources.   </td></tr>
+<td class="markdownTableBodyNone"><code>--connect-address-strict</code>   </td><td class="markdownTableBodyNone"></td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone"><b>Security</b>: Only accept packets from <code>connect-host</code> and <code>connect-port</code>, otherwise accept from all sources.   </td></tr>
 </table>
 <h1><a class="anchor" id="autotoc_md9"></a>
 Sender</h1>
-<p>The UDP redirector sends packets from here (e.g., to the wireguard server). If any is missing, it will be selected by the operating system (usually <code>0.0.0.0</code>, random port, default interface).</p>
+<p>The UDP redirector sends packets from the local endpoint specified below. If any arguments are missing, it will be selected by the operating system (usually INADDR_ANY, random port, default interface).</p>
 <table class="markdownTable">
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--send-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--send-address</code>   </td><td class="markdownTableBodyNone">ipv4 address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from this address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--send-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from port.    </td></tr>
+<td class="markdownTableBodyNone"><code>--send-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from this port.    </td></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--send-interface</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from interface.   </td></tr>
+<td class="markdownTableBodyNone"><code>--send-interface</code>   </td><td class="markdownTableBodyNone">interface   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Send packets from this interface name.   </td></tr>
 </table>
 <h1><a class="anchor" id="autotoc_md10"></a>
 Listener security</h1>
@@ -202,9 +202,9 @@ Listener security</h1>
 <tr class="markdownTableHead">
 <th class="markdownTableHeadNone">Argument   </th><th class="markdownTableHeadNone">Parameters   </th><th class="markdownTableHeadNone">Req/Opt   </th><th class="markdownTableHeadNone">Description    </th></tr>
 <tr class="markdownTableRowOdd">
-<td class="markdownTableBodyNone"><code>--listen-sender-address</code>   </td><td class="markdownTableBodyNone">address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source address.    </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-sender-address</code>   </td><td class="markdownTableBodyNone">ipv4 address   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source address.    </td></tr>
 <tr class="markdownTableRowEven">
-<td class="markdownTableBodyNone"><code>--listen-sender-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source port (must be set together, <code>--listen-strict</code> is implied).   </td></tr>
+<td class="markdownTableBodyNone"><code>--listen-sender-port</code>   </td><td class="markdownTableBodyNone">port   </td><td class="markdownTableBodyNone"><em>optional</em>   </td><td class="markdownTableBodyNone">Listen endpoint only accepts packets from this source port (must be set together, <code>--listen-address-strict</code> is implied).   </td></tr>
 </table>
 <h1><a class="anchor" id="autotoc_md11"></a>
 Miscellaneous</h1>
