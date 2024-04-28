@@ -1,7 +1,7 @@
 /**
  * @file udp-redirect.c
  * @author Dan Podeanu <pdan@esync.org>
- * @version 1.0
+ * @version 1.0.0
  *
  * @section LICENSE
  *
@@ -30,6 +30,11 @@
 #include <math.h>
 #include <netdb.h>
 #include <time.h>
+
+/**
+ * The udp-redirect version
+ */
+#define UDP_REDIRECT_VERSION    "1.0.0"
 
 /**
  * The delay in seconds between displaying statistics
@@ -119,6 +124,8 @@ static struct option longopts[] = {
     { "stop-errors",           no_argument,            NULL,           's' }, ///< Do NOT ignore harmless recvfrom / sendto errors
 
     { "stats",                 no_argument,            NULL,           'q' }, ///< Display stats every 60 seconds
+
+    { "version",               no_argument,            NULL,           'z' }, ///< Display the version
 
     { NULL,                    0,                      NULL,            0 }
 };
@@ -341,6 +348,11 @@ int main(int argc, char *argv[]) {
                 break;
             case 'q': /* --stats */
                 s.stats = 1;
+
+                break;
+            case 'z': /* --version */
+                fprintf(stderr, "udp-redirect v%s\n", UDP_REDIRECT_VERSION);
+                exit(EXIT_SUCCESS);
 
                 break;
             default:
@@ -825,36 +837,38 @@ void usage(const char *argv0, const char *message) {
 
     fprintf(stderr, "Usage: %s\n", argv0);
     fprintf(stderr, "          [--listen-address <address>] --listen-port <port> [--listen-interface <interface>]\n");
-    fprintf(stderr, "          --connect-address <address> | --connect-host <hostname> --connect-port <port>\n");
+    fprintf(stderr, "          [--connect-address <address> | --connect-host <hostname> --connect-port <port>\n");
     fprintf(stderr, "          [--send-address <address>] [--send-port <port>] [--send-interface <interface>]\n");
     fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
     fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
-    fprintf(stderr, "          [--stats] [--verbose] [--debug]\n");
+    fprintf(stderr, "          [--stats] [--verbose] [--debug] [--version]\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--verbose                            Verbose mode, can be specified multiple times (optional)\n");
-    fprintf(stderr, "--debug                              Debug mode (optional)\n");
+    fprintf(stderr, "--stats                                 Display sent/received bytes statistics every 60 seconds (optional)\n");
+    fprintf(stderr, "--verbose                               Verbose mode, can be specified multiple times (optional)\n");
+    fprintf(stderr, "--debug                                 Debug mode (optional)\n");
+    fprintf(stderr, "--version                               Display the version and exit\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-address <address>           Listen address (optional)\n");
-    fprintf(stderr, "--listen-port <port>                 Listen port (required)\n");
-    fprintf(stderr, "--listen-interface <interface>       Listen interface name (optional)\n");
-    fprintf(stderr, "--listen-address-strict              Only receive packets from the same source as the first packet (optional)\n");
+    fprintf(stderr, "--listen-address <ipv4 address>         Listen address (optional)\n");
+    fprintf(stderr, "--listen-port <port>                    Listen port (required)\n");
+    fprintf(stderr, "--listen-interface <interface>          Listen interface name (optional)\n");
+    fprintf(stderr, "--listen-address-strict                 Only receive packets from the same source as the first packet (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--connect-address <address>          Connect address (required)\n");
-    fprintf(stderr, "--connect-host <hostname>            Connect host, overwrites caddr if both are specified (required)\n");
-    fprintf(stderr, "--connect-port <port>                Connect port (required)\n");
-    fprintf(stderr, "--connect-address-strict             Only receive packets from the connect caddr / cport (optional)\n");
+    fprintf(stderr, "--connect-address <ipv4 address>        Connect address (required)\n");
+    fprintf(stderr, "--connect-host <hostname>               Connect host, overwrites --connect-address if both are specified (required)\n");
+    fprintf(stderr, "--connect-port <port>                   Connect port (required)\n");
+    fprintf(stderr, "--connect-address-strict                Only receive packets from --connect-address / --connect-port (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--send-address <address>             Send packets from address (optional)\n");
-    fprintf(stderr, "--send-port <port>                   Send packets from port (optional)\n");
-    fprintf(stderr, "--send-interface <interface>         Send packets from interface (optional)\n");
+    fprintf(stderr, "--send-address <ipv4 address>           Send packets from address (optional)\n");
+    fprintf(stderr, "--send-port <port>                      Send packets from port (optional)\n");
+    fprintf(stderr, "--send-interface <interface>            Send packets from interface (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-sender-address <address>    Listen endpoint only accepts packets from this source address (optional)\n");
-    fprintf(stderr, "--listen-sender-port <port>          Listen endpoint only accepts packets from this source port (optional)\n");
-    fprintf(stderr, "                                     (must be set together, --listen-address-strict is implied)\n");
+    fprintf(stderr, "--listen-sender-address <ipv4 address>  Listen endpoint only accepts packets from this source address (optional)\n");
+    fprintf(stderr, "--listen-sender-port <port>             Listen endpoint only accepts packets from this source port (optional)\n");
+    fprintf(stderr, "                                        (must be set together, --listen-address-strict is implied)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--ignore-errors                      Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional) (default)\n");
-    fprintf(stderr, "--stop-errors                        Exit on most receive or send errors (unreachable, etc.) (optional)\n");
+    fprintf(stderr, "--ignore-errors                         Ignore most receive or send errors (unreachable, etc.) instead of exiting (optional) (default)\n");
+    fprintf(stderr, "--stop-errors                           Exit on most receive or send errors (unreachable, etc.) (optional)\n");
     fprintf(stderr, "\n");
 
     exit(EXIT_FAILURE);

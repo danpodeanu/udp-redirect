@@ -75,9 +75,10 @@ Runs in foreground and expects external process control (svscan, nohup, etc.)
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
+| ```--stats``` | | *optional* | Display sent/received bytes statistics every 60 seconds. |
 | ```--verbose``` | | *optional* | Verbose mode, can be specified multiple times. |
 | ```--debug``` | | *optional* | Debug mode (e.g., very verbose). |
-| ```--stats``` | | *optional* | Display sent/received bytes statistics every 60 seconds. |
+| ```--version``` | | *optional* | Display the version and exit. |
 
 ## Listener
 
