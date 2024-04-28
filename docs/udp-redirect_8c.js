@@ -15,6 +15,7 @@ var udp_redirect_8c =
     [ "MAX_ERRNO", "udp-redirect_8c.html#a9998f145d5911cecdac6aa347ad08559", null ],
     [ "NETWORK_BUFFER_SIZE", "udp-redirect_8c.html#a4979fa449090ea6181c2f0a91fe512e7", null ],
     [ "STATISTICS_DELAY_SECONDS", "udp-redirect_8c.html#aa1a29c97612ba647f485fae49439e74f", null ],
+    [ "UDP_REDIRECT_VERSION", "udp-redirect_8c.html#ada596d113080b14fcf0680f118baf602", null ],
     [ "DEBUG_LEVEL", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997", [
       [ "DEBUG_LEVEL_ERROR", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c", null ],
       [ "DEBUG_LEVEL_INFO", "udp-redirect_8c.html#a1abe4a502b5a81ac9d4fc4ca3548b997ad190887353b0664ff091b83d6387aa9b", null ],

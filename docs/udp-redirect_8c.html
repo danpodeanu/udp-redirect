@@ -163,6 +163,8 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
+<tr class="memitem:ada596d113080b14fcf0680f118baf602" id="r_ada596d113080b14fcf0680f118baf602"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ada596d113080b14fcf0680f118baf602">UDP_REDIRECT_VERSION</a>&#160;&#160;&#160;&quot;1.0.0&quot;</td></tr>
+<tr class="separator:ada596d113080b14fcf0680f118baf602"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1a29c97612ba647f485fae49439e74f" id="r_aa1a29c97612ba647f485fae49439e74f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa1a29c97612ba647f485fae49439e74f">STATISTICS_DELAY_SECONDS</a>&#160;&#160;&#160;60</td></tr>
 <tr class="separator:aa1a29c97612ba647f485fae49439e74f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4979fa449090ea6181c2f0a91fe512e7" id="r_a4979fa449090ea6181c2f0a91fe512e7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4979fa449090ea6181c2f0a91fe512e7">NETWORK_BUFFER_SIZE</a>&#160;&#160;&#160;65535</td></tr>
@@ -229,7 +231,7 @@ Variables</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>Dan Podeanu <a href="#" onclick="location.href='mai'+'lto:'+'pda'+'n@'+'esy'+'nc'+'.or'+'g'; return false;">pdan@<span class="obfuscator">.nosp@m.</span>esyn<span class="obfuscator">.nosp@m.</span>c.org</a> </dd></dl>
-<dl class="section version"><dt>Version</dt><dd>1.0</dd></dl>
+<dl class="section version"><dt>Version</dt><dd>1.0.0</dd></dl>
 <h1><a class="anchor" id="LICENSE"></a>
 LICENSE</h1>
 <p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
@@ -469,6 +471,21 @@ DESCRIPTION</h1>
       </table>
 </div><div class="memdoc">
 <p>The delay in seconds between displaying statistics </p>
+
+</div>
+</div>
+<a id="ada596d113080b14fcf0680f118baf602" name="ada596d113080b14fcf0680f118baf602"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ada596d113080b14fcf0680f118baf602">&#9670;&#160;</a></span>UDP_REDIRECT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define UDP_REDIRECT_VERSION&#160;&#160;&#160;&quot;1.0.0&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>The udp-redirect version </p>
 
 </div>
 </div>
@@ -882,36 +899,7 @@ Here is the caller graph for this function:</div>
   </tr>
 </table>
 </div><div class="memdoc">
-<b>Initial value:</b><div class="fragment"><div class="line">= {</div>
-<div class="line">    { <span class="stringliteral">&quot;verbose&quot;</span>,               no_argument,            NULL,           <span class="charliteral">&#39;v&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;debug&quot;</span>,                 no_argument,            NULL,           <span class="charliteral">&#39;d&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-address&quot;</span>,        required_argument,      NULL,           <span class="charliteral">&#39;a&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-port&quot;</span>,           required_argument,      NULL,           <span class="charliteral">&#39;b&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-interface&quot;</span>,      required_argument,      NULL,           <span class="charliteral">&#39;c&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;connect-address&quot;</span>,       required_argument,      NULL,           <span class="charliteral">&#39;g&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;connect-host&quot;</span>,          required_argument,      NULL,           <span class="charliteral">&#39;h&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;connect-port&quot;</span>,          required_argument,      NULL,           <span class="charliteral">&#39;i&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;send-address&quot;</span>,          required_argument,      NULL,           <span class="charliteral">&#39;m&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;send-port&quot;</span>,             required_argument,      NULL,           <span class="charliteral">&#39;n&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;send-interface&quot;</span>,        required_argument,      NULL,           <span class="charliteral">&#39;o&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-address-strict&quot;</span>, no_argument,            NULL,           <span class="charliteral">&#39;x&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;connect-address-strict&quot;</span>,no_argument,            NULL,           <span class="charliteral">&#39;y&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-sender-address&quot;</span>, required_argument,      NULL,           <span class="charliteral">&#39;k&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;listen-sender-port&quot;</span>,    required_argument,      NULL,           <span class="charliteral">&#39;l&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;ignore-errors&quot;</span>,         no_argument,            NULL,           <span class="charliteral">&#39;r&#39;</span> }, </div>
-<div class="line">    { <span class="stringliteral">&quot;stop-errors&quot;</span>,           no_argument,            NULL,           <span class="charliteral">&#39;s&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { <span class="stringliteral">&quot;stats&quot;</span>,                 no_argument,            NULL,           <span class="charliteral">&#39;q&#39;</span> }, </div>
-<div class="line"> </div>
-<div class="line">    { NULL,                    0,                      NULL,            0 }</div>
-<div class="line">}</div>
-</div><!-- fragment --><p>Command line options. </p>
+<p>Command line options. </p>
 
 </div>
 </div>
