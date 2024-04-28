@@ -1,3 +1,7 @@
+ifeq ($(PREFIX),)
+    PREFIX := /usr/local
+endif
+
 CC=gcc
 CFLAGS=-Wall -O3
 
@@ -15,6 +19,12 @@ $(ODIR)/%.o: %.c $(HEADER)
 
 udp-redirect: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS)
+
+install: udp-redirect
+	install -d $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 udp-redirect $(DESTDIR)$(PREFIX)/bin/
+	install -d $(DESTDIR)$(PREFIX)/share/man/man1/
+	install -m 644 udp-redirect.1 $(DESTDIR)$(PREFIX)/share/man/man1/
 
 .PHONY: clean
 
