@@ -624,7 +624,7 @@ int main(int argc, char *argv[]) {
 
                     DEBUG((sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
                             "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes (%s WRITE %d bytes)",
-                            inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
+                            inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
                             inet_ntop(AF_INET, &(previous_endpoint.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(previous_endpoint.sin_port),
                             sendto_retval,
                             (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
@@ -670,6 +670,7 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
         exit(EXIT_FAILURE);
     }
 
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
 
     /* Address specified or any */
