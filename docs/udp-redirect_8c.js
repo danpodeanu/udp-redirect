@@ -2,7 +2,7 @@ var udp_redirect_8c =
 [
     [ "settings", "structsettings.html", "structsettings" ],
     [ "statistics", "structstatistics.html", "structstatistics" ],
-    [ "DEBUG", "udp-redirect_8c.html#ac1f6fbe3701c17626b9d9222002790a3", null ],
+    [ "DEBUG", "udp-redirect_8c.html#a4ef8f5794d4be4b93421dc286d49bdc4", null ],
     [ "EOK", "udp-redirect_8c.html#acf2e4414e0bf0d331a111e70f9317434", null ],
     [ "ERRNO_IGNORE_CHECK", "udp-redirect_8c.html#ac55492e92f1e5fde0a623ffdf45671e9", null ],
     [ "ERRNO_IGNORE_INIT", "udp-redirect_8c.html#a7be36c4e113e68d8e2492bca25e3d139", null ],
