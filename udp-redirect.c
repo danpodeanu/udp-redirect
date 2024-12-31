@@ -152,9 +152,9 @@ struct settings {
     char *lsaddr;       ///< Listen port expects packets from this address
     int lsport;         ///< Listen port only expects packets from this port
 
-    int eignore;        //< Ignore most recvfrom / sendto errors
+    int eignore;        ///< Ignore most recvfrom / sendto errors
 
-    int stats;          //< Display stats every 60 seconds
+    int stats;          ///< Display stats every 60 seconds
 };
 
 /**
