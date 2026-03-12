@@ -32,7 +32,7 @@
 .TH udp-redirect 1 "2024-04-26" "udp-redirect"
 .
 .SH NAME
-udp-redirect \- A simple yet flexible and very fast UDP redirector.
+udp-redirect \- A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6.
 .
 .\" --------------------------------------------------------------------------
 .\" Synopsis
@@ -76,8 +76,8 @@ Command line arguments further below. The simplest usage only requires \fB--list
 The UDP redirector sends packets to the endpoint specified below.
 .
 .TP
-.B \--listen-address <ipv4 address>
-Listen address, defaults to INADDR_ANY. (optional)
+.B \--listen-address <address>
+Listen address (IPv4 or IPv6), defaults to INADDR_ANY / IN6ADDR_ANY. (optional)
 .
 .TP
 .B \--listen-port <port>
@@ -92,8 +92,8 @@ Listen interface name. (optional)
 \fBSecurity:\fP By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In --listen-address-strict mode, only accept packets from the same source as the first packet, or the source specified by --listen-sender-address and --listen-sender-port. (optional)
 .
 .TP
-.B \--listen-sender-address <ipv4 address>
-Listen endpoint only accepts packets from this source address. (optional)
+.B \--listen-sender-address <address>
+Listen endpoint only accepts packets from this source address (IPv4 or IPv6). (optional)
 .
 .TP
 .B \--listen-sender-port <port>
@@ -109,8 +109,8 @@ Both --listen-sender-address and --listen-sender-port must be set together; --li
 The UDP redirector sends packets to the endpoint specified below.
 .
 .TP
-.B \--connect-address <ipv4 address>
-Connect address. \fB(required if --connect-host is not specified)\fP
+.B \--connect-address <address>
+Connect address (IPv4 or IPv6). \fB(required if --connect-host is not specified)\fP
 .
 .TP
 .B \--connect-host <hostname>
@@ -134,8 +134,8 @@ Connect port. \fB(required)\fP
 The UDP redirector sends packets from the local endpoint specified below. If any arguments are missing, it will be selected by the operating system (usually INADDR_ANY, random port, default interface).
 .
 .TP
-.B \--send-address <ipv4 address>
-Send packets from this address. (optional)
+.B \--send-address <address>
+Send packets from this address (IPv4 or IPv6). (optional)
 .
 .TP
 .B \--send-port <port>
