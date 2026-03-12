@@ -34,7 +34,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "1.0.0"
+#define UDP_REDIRECT_VERSION    "1.1.0"
 
 /**
  * The delay in seconds between displaying statistics
@@ -82,6 +82,24 @@ enum DEBUG_LEVEL {
 };
 
 /**
+ * Parse a port number from a string (optarg).
+ * Sets @p dest to the parsed value, or prints @p label and exits on error.
+ * Validates that the string is a pure decimal integer in [0, 65535].
+ */
+#define PARSE_PORT(src, dest, label) \
+    do { \
+        char *_endptr; \
+        long _val; \
+        errno = EOK; \
+        _val = strtol((src), &_endptr, 10); \
+        if (errno != EOK || _endptr == (src) || *_endptr != '\0' || _val < 0 || _val > 65535) { \
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid %s: %s", (label), (src)); \
+            exit(EXIT_FAILURE); \
+        } \
+        (dest) = (int)_val; \
+    } while (0)
+
+/**
  * Standard debug macro requiring a locally defined debug level.
  * Adapted from the excellent https://github.com/jleffler/soq/blob/master/src/libsoq/debug.h
  *
@@ -90,8 +108,8 @@ enum DEBUG_LEVEL {
 #define DEBUG(debug_level_local, debug_level_message, fmt, ...) \
         do { \
             if ((debug_level_local) >= (debug_level_message)) { \
-                fprintf(stderr, "%s:%d:%d:%s(): " fmt "\n", __FILE__, \
-                    __LINE__, (int)(time(NULL)), __func__, ##__VA_ARGS__); \
+                fprintf(stderr, "%s:%d:%ld:%s(): " fmt "\n", __FILE__, \
+                    __LINE__, (long)(time(NULL)), __func__, ##__VA_ARGS__); \
             } \
         } while (0)
 
@@ -267,13 +285,7 @@ int main(int argc, char *argv[]) {
 
                 break;
             case 'b': /* --listen-port */
-                s.lport = atoi(optarg);
-                if (errno != EOK) {
-                    perror("atoi");
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid listen port: %s (%d)", optarg, errno);
-
-                    exit(EXIT_FAILURE);
-                }
+                PARSE_PORT(optarg, s.lport, "listen port");
 
                 break;
             case 'c': /* --listeninterface */
@@ -289,13 +301,7 @@ int main(int argc, char *argv[]) {
 
                 break;
             case 'i': /* --connect-port */
-                s.cport = atoi(optarg);
-                if (errno != EOK) {
-                    perror("atoi");
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid connect port: %s (%d)", optarg, errno);
-
-                    exit(EXIT_FAILURE);
-                }
+                PARSE_PORT(optarg, s.cport, "connect port");
 
                 break;
             case 'm': /* --send-address */
@@ -303,13 +309,7 @@ int main(int argc, char *argv[]) {
 
                 break;
             case 'n': /* --send-port */
-                s.sport = atoi(optarg);
-                if (errno != EOK) {
-                    perror("atoi");
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid send port: %s (%d)", optarg, errno);
-
-                    exit(EXIT_FAILURE);
-                }
+                PARSE_PORT(optarg, s.sport, "send port");
 
                 break;
             case 'o': /* --send-interface */
@@ -329,13 +329,7 @@ int main(int argc, char *argv[]) {
 
                 break;
             case 'l': /* --listen-sender-port */
-                s.lsport = atoi(optarg);
-                if (errno != EOK) {
-                    perror("atoi");
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid send port: %s (%d)", optarg, errno);
-
-                    exit(EXIT_FAILURE);
-                }
+                PARSE_PORT(optarg, s.lsport, "listen sender port");
 
                 break;
             case 'r': /* --ignore-errors */
@@ -420,8 +414,8 @@ int main(int argc, char *argv[]) {
     }
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Send interface: %s", (s.sif != NULL)?s.sif:"ANY");
 
-    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen strict: %s", s.cstrict?"ENABLED":"DISABLED");
-    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Connect strict: %s", s.lstrict?"ENABLED":"DISABLED");
+    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen strict: %s", s.lstrict?"ENABLED":"DISABLED");
+    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Connect strict: %s", s.cstrict?"ENABLED":"DISABLED");
 
     if (s.lsaddr != NULL) {
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen only accepts packets from address: %s", s.lsaddr);
@@ -439,31 +433,30 @@ int main(int argc, char *argv[]) {
     ssock = socket_setup(debug_level, "Send", s.saddr, s.sport, s.sif, &ssock_name); /* Set up send socket */
 
     /* Set up connect address */
+    memset(&caddr, 0, sizeof(caddr));
     caddr.sin_family = AF_INET;
-    if ((caddr.sin_addr.s_addr = inet_addr(s.caddr)) == INADDR_NONE) {
-        perror("inet_addr");
-        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid connect address %s (%d)", s.caddr, errno);
+    if (inet_pton(AF_INET, s.caddr, &caddr.sin_addr) != 1) {
+        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid connect address: %s", s.caddr);
 
         exit(EXIT_FAILURE);
     }
     caddr.sin_port = htons(s.cport);
 
-    endpoint.sin_addr.s_addr = 0; /* No packet received, no endpoint */
+    memset(&endpoint, 0, sizeof(endpoint)); /* No packet received, no endpoint */
 
     previous_endpoint.sin_family = AF_INET;
     if (s.lsaddr == NULL && s.lsport == 0) {
         previous_endpoint.sin_addr.s_addr = 0; /* No packet received, no previous endpoint */
     } else {
-        if ((previous_endpoint.sin_addr.s_addr = inet_addr(s.lsaddr)) == INADDR_NONE) {
-            perror("inet_addr");
-            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid listen packet address %s (%d)", s.lsaddr, errno);
+        if (inet_pton(AF_INET, s.lsaddr, &previous_endpoint.sin_addr) != 1) {
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid listen sender address: %s", s.lsaddr);
 
             exit(EXIT_FAILURE);
         }
         previous_endpoint.sin_port = htons(s.lsport);
     }
 
-    int endpoint_len = sizeof(endpoint);
+    socklen_t endpoint_len = sizeof(endpoint);
 
     ERRNO_IGNORE_INIT(errno_ignore);
     ERRNO_IGNORE_SET(errno_ignore, EINTR); /* Always ignore EINTR */
@@ -480,7 +473,7 @@ int main(int argc, char *argv[]) {
 
     DEBUG(debug_level, DEBUG_LEVEL_VERBOSE, "entering infinite loop");
 
-    st.time_display_first = time(NULL);
+    st.time_display_first = st.time_display_last = time(NULL);
 
     /* Main loop */
     while (1) {
@@ -495,7 +488,7 @@ int main(int argc, char *argv[]) {
 
         DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "waiting for readable sockets");
 
-        if (s.stats && (now - st.time_display_last) > STATISTICS_DELAY_SECONDS) {
+        if (s.stats && (now - st.time_display_last) >= STATISTICS_DELAY_SECONDS) {
             statistics_display(debug_level, &st, now);
             st.time_display_last = now;
         }
@@ -547,7 +540,7 @@ int main(int argc, char *argv[]) {
                     if (previous_endpoint.sin_addr.s_addr == 0 || !s.lstrict) {
                         if (previous_endpoint.sin_addr.s_addr != endpoint.sin_addr.s_addr ||
                                 previous_endpoint.sin_port != endpoint.sin_port) {
-                            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "LISTEN remote endpoint set to (%s, %d)", inet_ntoa(endpoint.sin_addr), ntohs(endpoint.sin_port));
+                            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "LISTEN remote endpoint set to (%s, %d)", inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port));
                         }
 
                         previous_endpoint.sin_addr.s_addr = endpoint.sin_addr.s_addr;
@@ -675,9 +668,8 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
 
     /* Address specified or any */
     if (xaddr != NULL) {
-        if ((addr.sin_addr.s_addr = inet_addr(xaddr)) == INADDR_NONE) {
-            perror("inet_addr");
-            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "%s address invalid %s (%d)", desc, xaddr, errno);
+        if (inet_pton(AF_INET, xaddr, &addr.sin_addr) != 1) {
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "%s address invalid: %s", desc, xaddr);
 
             exit(EXIT_FAILURE);
         }
@@ -718,7 +710,7 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
 #elif __unix__
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to interface %s", desc, xif);
 
-        if (setsockopt(xsock, SOL_SOCKET, SO_BINDTODEVICE, xif, strlen(xif)) == -1) {
+        if (setsockopt(xsock, SOL_SOCKET, SO_BINDTODEVICE, xif, strlen(xif) + 1) == -1) {
             perror("setsockopt");
             DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
 
@@ -791,7 +783,7 @@ char *resolve_host(int debug_level, const char *host) {
         exit(EXIT_FAILURE);
     }
 
-    DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "Resolved %s to %s", host, strdup(inet_ntoa(*address)));
+    DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "Resolved %s to %s", host, retval);
 
     return retval;
 }
@@ -840,8 +832,8 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--listen-address <address>] --listen-port <port> [--listen-interface <interface>]\n");
     fprintf(stderr, "          [--connect-address <address> | --connect-host <hostname> --connect-port <port>\n");
     fprintf(stderr, "          [--send-address <address>] [--send-port <port>] [--send-interface <interface>]\n");
-    fprintf(stderr, "          [--list-address-strict] [--connect-address-strict]\n");
-    fprintf(stderr, "          [--lsten-sender-addr <address>] [--listen-sender-port <port>]\n");
+    fprintf(stderr, "          [--listen-address-strict] [--connect-address-strict]\n");
+    fprintf(stderr, "          [--listen-sender-address <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
     fprintf(stderr, "          [--stats] [--verbose] [--debug] [--version]\n");
     fprintf(stderr, "\n");
@@ -936,39 +928,44 @@ void statistics_initialize(struct statistics *st) {
 }
 
 /**
- * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
- * @param[in] value The value to be converted
- * @param[in] host The host to resolve
- * @return The numeric portion of the human readable value.
+ * Shared scaling helper: divides @p value by 1000 repeatedly until it is
+ * <= 1000 or the maximum prefix is reached.
+ * @param[in]  value     The raw value to scale.
+ * @param[out] count_out The number of divisions performed (index into the
+ *                       human-readable suffix array).
+ * @return The scaled value.
  */
-double int_to_human_value(double value) {
-    double dvalue = value;
+static double int_to_human_scale(double value, int *count_out) {
     int count = 0;
 
-    while (dvalue > 1000 && count < (HUMAN_READABLE_SIZES_COUNT - 1)) {
-        dvalue = dvalue / 1000;
+    while (value >= 1000 && count < (HUMAN_READABLE_SIZES_COUNT - 1)) {
+        value = value / 1000;
         count = count + 1;
     }
 
-    return dvalue;
+    *count_out = count;
+    return value;
 }
 
 /**
  * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
  * @param[in] value The value to be converted
- * @param[in] host The host to resolve
+ * @return The numeric portion of the human readable value.
+ */
+double int_to_human_value(double value) {
+    int count;
+    return int_to_human_scale(value, &count);
+}
+
+/**
+ * Convert a value to human readable (i.e., 1500 = 1.5K). Divide by 1000, not 1024.
+ * @param[in] value The value to be converted
  * @return The character (K, M, G, etc.) portion of the human readable value.
  */
 char int_to_human_char(double value) {
-    double dvalue = value;
-    int count = 0;
     static const char human_readable_sizes[] = HUMAN_READABLE_SIZES;
-
-    while (dvalue > 1000 && count < (HUMAN_READABLE_SIZES_COUNT - 1)) {
-        dvalue = dvalue / 1000;
-        count = count + 1;
-    }
-
+    int count;
+    int_to_human_scale(value, &count);
     return human_readable_sizes[count];
 }
 
@@ -979,8 +976,12 @@ char int_to_human_char(double value) {
  * @param[in] now The current time
  */
 void statistics_display(int debug_level, struct statistics *st, time_t now) {
-    int time_delta = now - st->time_display_last;
-    int time_delta_total = now - st->time_display_first;
+    /* Stats were explicitly requested: ensure they're visible at any verbosity level. */
+    if (debug_level < DEBUG_LEVEL_INFO)
+        debug_level = DEBUG_LEVEL_INFO;
+
+    time_t time_delta = now - st->time_display_last;
+    time_t time_delta_total = now - st->time_display_first;
 
     if (time_delta < 1)
         time_delta = 1;
