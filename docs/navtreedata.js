@@ -25,19 +25,26 @@
 var NAVTREE =
 [
   [ "UDP Redirect", "index.html", [
-    [ "udp-redirect", "md__r_e_a_d_m_e.html", [
-      [ "Security", "md__r_e_a_d_m_e.html#autotoc_md1", null ],
-      [ "Compile", "md__r_e_a_d_m_e.html#autotoc_md2", null ],
-      [ "Run", "md__r_e_a_d_m_e.html#autotoc_md3", null ],
-      [ "Documentation", "md__r_e_a_d_m_e.html#autotoc_md4", null ],
-      [ "Command Line Arguments", "md__r_e_a_d_m_e.html#autotoc_md5", [
-        [ "Debug", "md__r_e_a_d_m_e.html#autotoc_md6", null ],
-        [ "Listener", "md__r_e_a_d_m_e.html#autotoc_md7", null ],
-        [ "Connect", "md__r_e_a_d_m_e.html#autotoc_md8", null ]
+    [ "CLAUDE.md", "md_CLAUDE.html", [
+      [ "Project", "md_CLAUDE.html#autotoc_md1", null ],
+      [ "Build", "md_CLAUDE.html#autotoc_md2", null ],
+      [ "CI", "md_CLAUDE.html#autotoc_md3", null ],
+      [ "Architecture", "md_CLAUDE.html#autotoc_md4", null ],
+      [ "Conventions", "md_CLAUDE.html#autotoc_md5", null ]
+    ] ],
+    [ "udp-redirect", "md_README.html", [
+      [ "Security", "md_README.html#autotoc_md7", null ],
+      [ "Compile", "md_README.html#autotoc_md8", null ],
+      [ "Run", "md_README.html#autotoc_md9", null ],
+      [ "Documentation", "md_README.html#autotoc_md10", null ],
+      [ "Command Line Arguments", "md_README.html#autotoc_md11", [
+        [ "Debug", "md_README.html#autotoc_md12", null ],
+        [ "Listener", "md_README.html#autotoc_md13", null ],
+        [ "Connect", "md_README.html#autotoc_md14", null ]
       ] ],
-      [ "Sender", "md__r_e_a_d_m_e.html#autotoc_md9", null ],
-      [ "Listener security", "md__r_e_a_d_m_e.html#autotoc_md10", null ],
-      [ "Miscellaneous", "md__r_e_a_d_m_e.html#autotoc_md11", null ]
+      [ "Sender", "md_README.html#autotoc_md15", null ],
+      [ "Listener security", "md_README.html#autotoc_md16", null ],
+      [ "Miscellaneous", "md_README.html#autotoc_md17", null ]
     ] ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
@@ -66,5 +73,5 @@ var NAVTREEINDEX =
 "annotated.html"
 ];
 
-var SYNCONMSG = 'click to disable panel synchronization';
-var SYNCOFFMSG = 'click to enable panel synchronization';
+var SYNCONMSG = 'click to disable panel synchronisation';
+var SYNCOFFMSG = 'click to enable panel synchronisation';

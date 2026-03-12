@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['debug_0',['DEBUG',['../udp-redirect_8c.html#a4ef8f5794d4be4b93421dc286d49bdc4',1,'udp-redirect.c']]]
+  ['check_5fdouble_0',['CHECK_DOUBLE',['../udp-redirect-test_8c.html#af18302a1ed88e26fadd0730ed26fd1b6',1,'udp-redirect-test.c']]]
 ];

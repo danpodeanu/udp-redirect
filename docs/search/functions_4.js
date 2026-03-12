@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['usage_0',['usage',['../udp-redirect_8c.html#ae9a2954f00e12c29eff4ffd4e47f6d32',1,'udp-redirect.c']]]
+  ['parse_5faddr_0',['parse_addr',['../udp-redirect_8c.html#af2cb511930c9148f40f92ccbd3a6d127',1,'udp-redirect.c']]]
 ];

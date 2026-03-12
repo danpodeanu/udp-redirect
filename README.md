@@ -1,5 +1,5 @@
 # udp-redirect
-A simple yet flexible and very fast UDP redirector. Tested on Linux x64 and MacOS / Darwin arm64.
+A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6. Tested on Linux x64 and MacOS / Darwin arm64.
 
 Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
 
@@ -86,7 +86,7 @@ The UDP sender (e.g., wireguard client) sends packets to the UDP redirector spec
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--listen-address``` | ipv4 address | *optional* | Listen address, defaults to INADDR_ANY. |
+| ```--listen-address``` | address | *optional* | Listen address (IPv4 or IPv6), defaults to INADDR_ANY / IN6ADDR_ANY. |
 | ```--listen-port``` | port | **required** | Listen port. |
 | ```--listen-interface``` | interface | *optional* | Listen interface name. |
 | ```--listen-address-strict``` | | *optional* | **Security:** By default, packets received from the connect endpoint will be sent to the source of the last packet received on the listener endpoint. In ```listen-address-strict``` mode, only accept packets from the same source as the first packet, or the source specified by ```listen-sender-address``` and ```listen-sender-port```. |
@@ -97,7 +97,7 @@ The UDP redirector sends packets to the endpoint specified below.
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--connect-address``` | ipv4 address | **required** | Connect address. |
+| ```--connect-address``` | address | **required** | Connect address (IPv4 or IPv6). |
 | ```--connect-host``` | hostname | **required** | Connect host, overwrites ```connect-address``` if both are specified. |
 | ```--connect-port``` | port | **required** | Connect port. |
 | ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` and ```connect-port```, otherwise accept from all sources. |
@@ -108,7 +108,7 @@ The UDP redirector sends packets from the local endpoint specified below. If any
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--send-address``` | ipv4 address | *optional* | Send packets from this address. |
+| ```--send-address``` | address | *optional* | Send packets from this address (IPv4 or IPv6). |
 | ```--send-port``` | port | *optional* | Send packets from this port. |
 | ```--send-interface``` | interface | *optional* | Send packets from this interface name. |
 
@@ -118,7 +118,7 @@ Both must be specified; listener drops packets if they do not arrive from this a
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--listen-sender-address``` | ipv4 address | *optional* | Listen endpoint only accepts packets from this source address. |
+| ```--listen-sender-address``` | address | *optional* | Listen endpoint only accepts packets from this source address (IPv4 or IPv6). |
 | ```--listen-sender-port``` | port | *optional* | Listen endpoint only accepts packets from this source port (must be set together, ```--listen-address-strict``` is implied). |
 
 # Miscellaneous

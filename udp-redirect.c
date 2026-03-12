@@ -34,7 +34,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "1.1.0"
+#define UDP_REDIRECT_VERSION    "1.2.0"
 
 /**
  * The delay in seconds between displaying statistics
@@ -108,8 +108,8 @@ enum DEBUG_LEVEL {
 #define DEBUG(debug_level_local, debug_level_message, fmt, ...) \
         do { \
             if ((debug_level_local) >= (debug_level_message)) { \
-                fprintf(stderr, "%s:%d:%ld:%s(): " fmt "\n", __FILE__, \
-                    __LINE__, (long)(time(NULL)), __func__, ##__VA_ARGS__); \
+                fprintf(stderr, "%s:%d:%lld:%s(): " fmt "\n", __FILE__, \
+                    __LINE__, (long long)(time(NULL)), __func__, ##__VA_ARGS__); \
             } \
         } while (0)
 
@@ -209,8 +209,15 @@ struct statistics {
 
 /* Function prototypes */
 
-int socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, struct sockaddr_in *xsock_name);
-char *resolve_host(int debug_level, const char *host);
+static int socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, int xfamily, struct sockaddr_storage *xsock_name);
+static char *resolve_host(int debug_level, const char *host);
+
+static int parse_addr(const char *str, int port, struct sockaddr_storage *out);
+static const char *addr_tostring(const struct sockaddr_storage *sa, char *buf, size_t len);
+static int addr_port(const struct sockaddr_storage *sa);
+static socklen_t addr_len(const struct sockaddr_storage *sa);
+static int addr_is_unset(const struct sockaddr_storage *sa);
+static int addr_equal(const struct sockaddr_storage *a, const struct sockaddr_storage *b);
 
 void settings_initialize(struct settings *s);
 void usage(const char *argv0, const char *message);
@@ -245,21 +252,21 @@ int main(int argc, char *argv[]) {
     int lsock; /* Listen socket */
     int ssock; /* Send socket */
 
-    struct sockaddr_in lsock_name; /* Listen socket name */
-    struct sockaddr_in ssock_name; /* Send socket name */
+    struct sockaddr_storage lsock_name; /* Listen socket name */
+    struct sockaddr_storage ssock_name; /* Send socket name */
 
-    struct sockaddr_in caddr; /* Connect address */
+    struct sockaddr_storage caddr; /* Connect address */
 
-    /* Simplify inet_ntop usage in DEBUG() by reserving buffers to write output */
-    char print_buffer1[INET_ADDRSTRLEN];
-    char print_buffer2[INET_ADDRSTRLEN];
+    /* Simplify addr_tostring() usage in DEBUG() by reserving buffers */
+    char print_buffer1[INET6_ADDRSTRLEN];
+    char print_buffer2[INET6_ADDRSTRLEN];
 
-    char network_buffer[NETWORK_BUFFER_SIZE]; /* The network buffer. All reads and writes happen here */
+    static char network_buffer[NETWORK_BUFFER_SIZE]; /* The network buffer. All reads and writes happen here */
 
     struct pollfd ufds[2]; /* Poll file descriptors */
 
-    struct sockaddr_in endpoint; /* Address where the current packet was received from */
-    struct sockaddr_in previous_endpoint; /* Address where the previous packet was received from */
+    struct sockaddr_storage endpoint; /* Address where the current packet was received from */
+    struct sockaddr_storage previous_endpoint; /* Address where the previous packet was received from */
 
     unsigned char errno_ignore[MAX_ERRNO];
 
@@ -429,31 +436,26 @@ int main(int argc, char *argv[]) {
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "---- START ----");
 
-    lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, &lsock_name); /* Set up listening socket */
-    ssock = socket_setup(debug_level, "Send", s.saddr, s.sport, s.sif, &ssock_name); /* Set up send socket */
-
-    /* Set up connect address */
-    memset(&caddr, 0, sizeof(caddr));
-    caddr.sin_family = AF_INET;
-    if (inet_pton(AF_INET, s.caddr, &caddr.sin_addr) != 1) {
+    /* Set up connect address first so we know the family for the sockets below */
+    if (parse_addr(s.caddr, s.cport, &caddr) == -1) {
         DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid connect address: %s", s.caddr);
 
         exit(EXIT_FAILURE);
     }
-    caddr.sin_port = htons(s.cport);
+
+    lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, (int)caddr.ss_family, &lsock_name); /* Set up listening socket */
+    ssock = socket_setup(debug_level, "Send", s.saddr, s.sport, s.sif, (int)caddr.ss_family, &ssock_name); /* Set up send socket */
 
     memset(&endpoint, 0, sizeof(endpoint)); /* No packet received, no endpoint */
 
-    previous_endpoint.sin_family = AF_INET;
-    if (s.lsaddr == NULL && s.lsport == 0) {
-        previous_endpoint.sin_addr.s_addr = 0; /* No packet received, no previous endpoint */
-    } else {
-        if (inet_pton(AF_INET, s.lsaddr, &previous_endpoint.sin_addr) != 1) {
+    /* previous_endpoint: ss_family == 0 (zero-init) means "no endpoint seen yet" */
+    memset(&previous_endpoint, 0, sizeof(previous_endpoint));
+    if (s.lsaddr != NULL && s.lsport != 0) {
+        if (parse_addr(s.lsaddr, s.lsport, &previous_endpoint) == -1) {
             DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid listen sender address: %s", s.lsaddr);
 
             exit(EXIT_FAILURE);
         }
-        previous_endpoint.sin_port = htons(s.lsport);
     }
 
     socklen_t endpoint_len = sizeof(endpoint);
@@ -478,8 +480,8 @@ int main(int argc, char *argv[]) {
     /* Main loop */
     while (1) {
         int poll_retval;
-        int recvfrom_retval;
-        int sendto_retval;
+        ssize_t recvfrom_retval;
+        ssize_t sendto_retval;
 
         now = time(NULL);
 
@@ -510,8 +512,9 @@ int main(int argc, char *argv[]) {
 
         /* New data on the LISTEN socket */
         if (ufds[0].revents & POLLIN || ufds[0].revents & POLLPRI) {
+            endpoint_len = sizeof(endpoint);
             if ((recvfrom_retval = recvfrom(lsock, network_buffer, sizeof(network_buffer), 0,
-                            (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
+                            (struct sockaddr *)&endpoint, &endpoint_len)) == -1) {
                 if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                     perror("recvfrom");
                     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen cannot receive (%d)", errno);
@@ -523,9 +526,9 @@ int main(int argc, char *argv[]) {
                 st.count_listen_packet_receive++;
                 st.count_listen_byte_receive += recvfrom_retval;
 
-                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes",
-                        inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
-                        inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
+                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (LISTEN PORT): %zd bytes",
+                        addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
+                        addr_tostring(&lsock_name, print_buffer2, sizeof(print_buffer2)), addr_port(&lsock_name),
                         recvfrom_retval);
 
                 /** Accept the packet IF:
@@ -533,22 +536,19 @@ int main(int argc, char *argv[]) {
                   * - There is a previous endpoint, but we are not in strict mode, OR
                   * - The previous endpoint matches the current endpoint
                 */
-                if ((previous_endpoint.sin_addr.s_addr == 0 || !s.lstrict) ||
-                        (previous_endpoint.sin_addr.s_addr == endpoint.sin_addr.s_addr &&
-                         previous_endpoint.sin_port == endpoint.sin_port)) {
+                if ((addr_is_unset(&previous_endpoint) || !s.lstrict) ||
+                        addr_equal(&previous_endpoint, &endpoint)) {
 
-                    if (previous_endpoint.sin_addr.s_addr == 0 || !s.lstrict) {
-                        if (previous_endpoint.sin_addr.s_addr != endpoint.sin_addr.s_addr ||
-                                previous_endpoint.sin_port != endpoint.sin_port) {
-                            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "LISTEN remote endpoint set to (%s, %d)", inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port));
+                    if (addr_is_unset(&previous_endpoint) || !s.lstrict) {
+                        if (!addr_equal(&previous_endpoint, &endpoint)) {
+                            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "LISTEN remote endpoint set to (%s, %d)", addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
                         }
 
-                        previous_endpoint.sin_addr.s_addr = endpoint.sin_addr.s_addr;
-                        previous_endpoint.sin_port = endpoint.sin_port;
+                        memcpy(&previous_endpoint, &endpoint, sizeof(endpoint));
                     }
 
                     if ((sendto_retval = sendto(ssock, network_buffer, recvfrom_retval, 0,
-                                    (struct sockaddr *)&caddr, sizeof(caddr))) == -1) {
+                                    (struct sockaddr *)&caddr, addr_len(&caddr))) == -1) {
                         if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                             perror("sendto");
                             DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot send packet to send port (%d)", errno);
@@ -561,23 +561,24 @@ int main(int argc, char *argv[]) {
                     }
 
                     DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
-                            "SEND (%s, %d) -> (%s, %d) (SEND PORT): %d bytes (%s WRITE %d bytes)",
-                            inet_ntop(AF_INET, &(ssock_name.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(ssock_name.sin_port),
-                            inet_ntop(AF_INET, &(caddr.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(caddr.sin_port),
+                            "SEND (%s, %d) -> (%s, %d) (SEND PORT): %zd bytes (%s WRITE %zd bytes)",
+                            addr_tostring(&ssock_name, print_buffer1, sizeof(print_buffer1)), addr_port(&ssock_name),
+                            addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr),
                             sendto_retval,
                             (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
                 } else {
                     DEBUG(debug_level, DEBUG_LEVEL_ERROR, "LISTEN PORT invalid source (%s, %d), was expecting (%s, %d)",
-                            inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
-                            inet_ntop(AF_INET, &(previous_endpoint.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(previous_endpoint.sin_port));
+                            addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
+                            addr_tostring(&previous_endpoint, print_buffer2, sizeof(print_buffer2)), addr_port(&previous_endpoint));
                 }
             }
         }
 
         /* New data on the SEND socket */
         if (ufds[1].revents & POLLIN || ufds[1].revents & POLLPRI) {
+            endpoint_len = sizeof(endpoint);
             if ((recvfrom_retval = recvfrom(ssock, network_buffer, sizeof(network_buffer), 0,
-                            (struct sockaddr *)&endpoint, (socklen_t *)&endpoint_len)) == -1) {
+                            (struct sockaddr *)&endpoint, &endpoint_len)) == -1) {
                 if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                     perror("recvfrom");
                     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Send cannot receive packet (%d)", errno);
@@ -589,9 +590,9 @@ int main(int argc, char *argv[]) {
                 st.count_connect_packet_receive++;
                 st.count_connect_byte_receive += recvfrom_retval;
 
-                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (SEND PORT): %d bytes",
-                        inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
-                        inet_ntop(AF_INET, &(ssock_name.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(ssock_name.sin_port),
+                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (SEND PORT): %zd bytes",
+                        addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
+                        addr_tostring(&ssock_name, print_buffer2, sizeof(print_buffer2)), addr_port(&ssock_name),
                         recvfrom_retval);
 
                 /** Accept the packet IF:
@@ -599,11 +600,11 @@ int main(int argc, char *argv[]) {
                   * - The packet was received from the connect endpoint, OR
                   * - We are not in strict mode
                   */
-                if (previous_endpoint.sin_addr.s_addr != 0 &&
-                        (!s.cstrict || (caddr.sin_addr.s_addr == endpoint.sin_addr.s_addr && caddr.sin_port == endpoint.sin_port))) {
+                if (!addr_is_unset(&previous_endpoint) &&
+                        (!s.cstrict || addr_equal(&caddr, &endpoint))) {
 
                     if ((sendto_retval = sendto(lsock, network_buffer, recvfrom_retval, 0,
-                                    (struct sockaddr *)&previous_endpoint, sizeof(previous_endpoint))) == -1) {
+                                    (struct sockaddr *)&previous_endpoint, addr_len(&previous_endpoint))) == -1) {
                         if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                             perror("sendto");
                             DEBUG(debug_level, DEBUG_LEVEL_INFO, "Cannot send packet to listen port (%d)", errno);
@@ -616,15 +617,15 @@ int main(int argc, char *argv[]) {
                     }
 
                     DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
-                            "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %d bytes (%s WRITE %d bytes)",
-                            inet_ntop(AF_INET, &(lsock_name.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(lsock_name.sin_port),
-                            inet_ntop(AF_INET, &(previous_endpoint.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(previous_endpoint.sin_port),
+                            "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %zd bytes (%s WRITE %zd bytes)",
+                            addr_tostring(&lsock_name, print_buffer1, sizeof(print_buffer1)), addr_port(&lsock_name),
+                            addr_tostring(&previous_endpoint, print_buffer2, sizeof(print_buffer2)), addr_port(&previous_endpoint),
                             sendto_retval,
                             (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
                 } else {
                     DEBUG(debug_level, DEBUG_LEVEL_ERROR, "SEND PORT invalid source (%s, %d), was expecting (%s, %d)",
-                            inet_ntop(AF_INET, &(endpoint.sin_addr), print_buffer1, INET_ADDRSTRLEN), ntohs(endpoint.sin_port),
-                            inet_ntop(AF_INET, &(caddr.sin_addr), print_buffer2, INET_ADDRSTRLEN), ntohs(caddr.sin_port));
+                            addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
+                            addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr));
                 }
             }
         }
@@ -637,55 +638,149 @@ int main(int argc, char *argv[]) {
 /* Network helper functions below */
 
 /**
+ * Parse an IPv4 or IPv6 address string into a sockaddr_storage.
+ * Sets ss_family, the address field, and the port.
+ * @param[in]  str  Dotted-quad IPv4 or colon-separated IPv6 address string.
+ * @param[in]  port Port number in host byte order.
+ * @param[out] out  Zeroed sockaddr_storage to fill.
+ * @return AF_INET or AF_INET6 on success, -1 if the string is not a valid address.
+ */
+static int parse_addr(const char *str, int port, struct sockaddr_storage *out) {
+    struct sockaddr_in  *a4 = (struct sockaddr_in  *)out;
+    struct sockaddr_in6 *a6 = (struct sockaddr_in6 *)out;
+
+    memset(out, 0, sizeof(*out));
+
+    if (inet_pton(AF_INET, str, &a4->sin_addr) == 1) {
+        out->ss_family = AF_INET;
+        a4->sin_port   = htons(port);
+        return AF_INET;
+    }
+    if (inet_pton(AF_INET6, str, &a6->sin6_addr) == 1) {
+        out->ss_family  = AF_INET6;
+        a6->sin6_port   = htons(port);
+        return AF_INET6;
+    }
+    return -1;
+}
+
+/**
+ * Format the address portion of a sockaddr_storage into buf using inet_ntop.
+ * @return buf on success, "?" on failure.
+ */
+static const char *addr_tostring(const struct sockaddr_storage *sa, char *buf, size_t len) {
+    const void *ptr;
+    if (sa->ss_family == AF_INET6)
+        ptr = &((const struct sockaddr_in6 *)sa)->sin6_addr;
+    else
+        ptr = &((const struct sockaddr_in  *)sa)->sin_addr;
+    return inet_ntop((int)sa->ss_family, ptr, buf, (socklen_t)len) ? buf : "?";
+}
+
+/**
+ * Return the port from a sockaddr_storage in host byte order.
+ */
+static int addr_port(const struct sockaddr_storage *sa) {
+    if (sa->ss_family == AF_INET6)
+        return ntohs(((const struct sockaddr_in6 *)sa)->sin6_port);
+    return ntohs(((const struct sockaddr_in *)sa)->sin_port);
+}
+
+/**
+ * Return the wire size of a sockaddr_storage appropriate for its address family.
+ */
+static socklen_t addr_len(const struct sockaddr_storage *sa) {
+    return (sa->ss_family == AF_INET6)
+        ? (socklen_t)sizeof(struct sockaddr_in6)
+        : (socklen_t)sizeof(struct sockaddr_in);
+}
+
+/**
+ * Return 1 if the address is the zero-initialised "unset" sentinel (ss_family == 0).
+ */
+static int addr_is_unset(const struct sockaddr_storage *sa) {
+    return sa->ss_family == 0;
+}
+
+/**
+ * Return 1 if both sockaddr_storage values have the same family, address, and port.
+ */
+static int addr_equal(const struct sockaddr_storage *a, const struct sockaddr_storage *b) {
+    if (a->ss_family != b->ss_family)
+        return 0;
+    if (a->ss_family == AF_INET) {
+        const struct sockaddr_in *a4 = (const struct sockaddr_in *)a;
+        const struct sockaddr_in *b4 = (const struct sockaddr_in *)b;
+        return a4->sin_addr.s_addr == b4->sin_addr.s_addr &&
+               a4->sin_port        == b4->sin_port;
+    }
+    if (a->ss_family == AF_INET6) {
+        const struct sockaddr_in6 *a6 = (const struct sockaddr_in6 *)a;
+        const struct sockaddr_in6 *b6 = (const struct sockaddr_in6 *)b;
+        return memcmp(&a6->sin6_addr, &b6->sin6_addr, sizeof(struct in6_addr)) == 0 &&
+               a6->sin6_port == b6->sin6_port;
+    }
+    return 0;
+}
+
+/**
  * Creates a UDP socket on the specified address, port and interface, returning the socket and
  * the socket name (if either arguments were NULL or 0).
  *
  * @param[in] debug_level The debug level to be used for the DEBUG() macro
  * @param[in] desc The caller description, added to debug messages
- * @param[in] xaddr The IPV4 address for the socket to be created, or NULL for INADDR_ANY
- * @param[in] xport The IPV4 port for the socket to be created, or 0 for random (decided by bind())
+ * @param[in] xaddr The address for the socket to be created, or NULL for ANY
+ * @param[in] xport The port for the socket to be created, or 0 for random (decided by bind())
  * @param[in] xif The OS interface name to bind to, or NULL for all interfaces.
+ * @param[in] xfamily AF_INET or AF_INET6; used only when xaddr is NULL.
  * @param[out] xsock_name The name of the socket created.
  * @return The socket file descriptor as integer.
  *
  */
-int socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, struct sockaddr_in *xsock_name) {
+static int socket_setup(const int debug_level, const char *desc, const char *xaddr, const int xport, const char *xif, int xfamily, struct sockaddr_storage *xsock_name) {
     int xsock;
     const int enable = 1;
-    struct sockaddr_in addr;
-
-    /* Set up listening socket */
-    DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: create", desc);
-    if ((xsock = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP)) == -1) {
-        perror("socket");
-        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot create DGRAM socket (%d)", errno);
-
-        exit(EXIT_FAILURE);
-    }
+    int family;
+    struct sockaddr_storage addr;
 
     memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
 
-    /* Address specified or any */
+    /* Determine address family and fill bind address */
     if (xaddr != NULL) {
-        if (inet_pton(AF_INET, xaddr, &addr.sin_addr) != 1) {
+        if (parse_addr(xaddr, xport, &addr) == -1) {
             DEBUG(debug_level, DEBUG_LEVEL_ERROR, "%s address invalid: %s", desc, xaddr);
 
             exit(EXIT_FAILURE);
         }
+        family = (int)addr.ss_family;
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to address %s", desc, xaddr);
     } else {
-        addr.sin_addr.s_addr = INADDR_ANY;
+        family = xfamily;
+        addr.ss_family = (sa_family_t)family;
+        if (family == AF_INET6) {
+            ((struct sockaddr_in6 *)&addr)->sin6_addr = in6addr_any;
+            ((struct sockaddr_in6 *)&addr)->sin6_port = htons(xport);
+        } else {
+            ((struct sockaddr_in *)&addr)->sin_addr.s_addr = INADDR_ANY;
+            ((struct sockaddr_in *)&addr)->sin_port = htons(xport);
+        }
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to address %s", desc, "ANY");
     }
 
     /* Port specified or any */
     if (xport != 0) {
-        addr.sin_port = htons(xport);
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to port %d", desc, xport);
     } else {
-        addr.sin_port = 0;
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to port %s", desc, "ANY");
+    }
+
+    /* Set up socket */
+    DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: create", desc);
+    if ((xsock = socket(family, SOCK_DGRAM, IPPROTO_UDP)) == -1) {
+        perror("socket");
+        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot create DGRAM socket (%d)", errno);
+
+        exit(EXIT_FAILURE);
     }
 
     if (xif != NULL) {
@@ -701,14 +796,23 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
             exit(EXIT_FAILURE);
         }
 
-        if (setsockopt(xsock, IPPROTO_IP, IP_BOUND_IF, &xif_idx, sizeof(xif_idx)) == -1) {
-            perror("setsockopt");
-            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
+        {
+            int if_level  = (family == AF_INET6) ? IPPROTO_IPV6 : IPPROTO_IP;
+            int if_optname = (family == AF_INET6) ? IPV6_BOUND_IF : IP_BOUND_IF;
+            if (setsockopt(xsock, if_level, if_optname, &xif_idx, sizeof(xif_idx)) == -1) {
+                perror("setsockopt");
+                DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot set socket interface (%d)", errno);
 
-            exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
+            }
         }
 #elif __unix__
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind to interface %s", desc, xif);
+
+        if (strlen(xif) >= IFNAMSIZ) {
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Interface name too long (max %d): %s", IFNAMSIZ - 1, xif);
+            exit(EXIT_FAILURE);
+        }
 
         if (setsockopt(xsock, SOL_SOCKET, SO_BINDTODEVICE, xif, strlen(xif) + 1) == -1) {
             perror("setsockopt");
@@ -739,7 +843,7 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
     }
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "%s socket: bind", desc);
-    if (bind(xsock, (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+    if (bind(xsock, (struct sockaddr *)&addr, addr_len(&addr)) == -1) {
         perror("bind");
         DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot bind socket (%d)", errno);
 
@@ -763,22 +867,43 @@ int socket_setup(const int debug_level, const char *desc, const char *xaddr, con
  * @param[in] host The host to resolve
  * @return A newly allocated buffer containing the IP.
  */
-char *resolve_host(int debug_level, const char *host) {
-    struct hostent *host_info;
-    struct in_addr *address;
+static char *resolve_host(int debug_level, const char *host) {
+    struct addrinfo hints;
+    struct addrinfo *res;
+    char buf[INET6_ADDRSTRLEN];
     char *retval;
+    int rc;
 
-    if ((host_info = gethostbyname(host)) == NULL) {
-        perror("gethostbyname");
-        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Could not resolve host %s (%d)", host, errno);
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family   = AF_UNSPEC;   /* accept IPv4 or IPv6 */
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if ((rc = getaddrinfo(host, NULL, &hints, &res)) != 0) {
+        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Could not resolve host %s: %s", host, gai_strerror(rc));
 
         exit(EXIT_FAILURE);
     }
 
-    address = (struct in_addr *)(host_info->h_addr);
-    if ((retval = strdup(inet_ntoa(*address))) == NULL) {
+    /* Use the first result; inet_ntop converts it back to a string for parse_addr() */
+    {
+        const void *addr_ptr = (res->ai_family == AF_INET6)
+            ? (const void *)&((struct sockaddr_in6 *)res->ai_addr)->sin6_addr
+            : (const void *)&((struct sockaddr_in  *)res->ai_addr)->sin_addr;
+
+        if (inet_ntop(res->ai_family, addr_ptr, buf, sizeof(buf)) == NULL) {
+            perror("inet_ntop");
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Could not format resolved address (%d)", errno);
+            freeaddrinfo(res);
+
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    freeaddrinfo(res);
+
+    if ((retval = strdup(buf)) == NULL) {
         perror("strdup");
-        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Could not duplicate string (%d)", errno);
+        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Could not duplicate resolved address string (%d)", errno);
 
         exit(EXIT_FAILURE);
     }
@@ -842,21 +967,21 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--debug                                 Debug mode (optional)\n");
     fprintf(stderr, "--version                               Display the version and exit\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-address <ipv4 address>         Listen address (optional)\n");
+    fprintf(stderr, "--listen-address <address>              Listen address, IPv4 or IPv6 (optional)\n");
     fprintf(stderr, "--listen-port <port>                    Listen port (required)\n");
     fprintf(stderr, "--listen-interface <interface>          Listen interface name (optional)\n");
     fprintf(stderr, "--listen-address-strict                 Only receive packets from the same source as the first packet (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--connect-address <ipv4 address>        Connect address (required)\n");
+    fprintf(stderr, "--connect-address <address>             Connect address, IPv4 or IPv6 (required)\n");
     fprintf(stderr, "--connect-host <hostname>               Connect host, overwrites --connect-address if both are specified (required)\n");
     fprintf(stderr, "--connect-port <port>                   Connect port (required)\n");
     fprintf(stderr, "--connect-address-strict                Only receive packets from --connect-address / --connect-port (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--send-address <ipv4 address>           Send packets from address (optional)\n");
+    fprintf(stderr, "--send-address <address>                Send packets from address, IPv4 or IPv6 (optional)\n");
     fprintf(stderr, "--send-port <port>                      Send packets from port (optional)\n");
     fprintf(stderr, "--send-interface <interface>            Send packets from interface (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--listen-sender-address <ipv4 address>  Listen endpoint only accepts packets from this source address (optional)\n");
+    fprintf(stderr, "--listen-sender-address <address>       Listen endpoint only accepts packets from this source address, IPv4 or IPv6 (optional)\n");
     fprintf(stderr, "--listen-sender-port <port>             Listen endpoint only accepts packets from this source port (optional)\n");
     fprintf(stderr, "                                        (must be set together, --listen-address-strict is implied)\n");
     fprintf(stderr, "\n");

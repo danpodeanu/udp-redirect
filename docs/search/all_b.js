@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['time_5fdisplay_5ffirst_0',['time_display_first',['../structstatistics.html#ae2cc21ddf17618ae0657c052ee9a613e',1,'statistics']]],
-  ['time_5fdisplay_5flast_1',['time_display_last',['../structstatistics.html#a2a0680c786a86eaa1f0f431c3a900821',1,'statistics']]]
+  ['parse_5faddr_0',['parse_addr',['../udp-redirect_8c.html#af2cb511930c9148f40f92ccbd3a6d127',1,'udp-redirect.c']]],
+  ['parse_5fport_1',['PARSE_PORT',['../udp-redirect_8c.html#a0dad44b7bc42ceffe7da02c4d30d7b92',1,'udp-redirect.c']]],
+  ['project_2',['Project',['../md_CLAUDE.html#autotoc_md1',1,'']]]
 ];

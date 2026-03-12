@@ -3,6 +3,7 @@ CLAUDE.md
 .claude/
 .DS_Store
 udp-redirect
+udp-redirect-test
 c
 r
 .*.swp

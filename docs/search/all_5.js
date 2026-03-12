@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['int_5fto_5fhuman_5fchar_0',['int_to_human_char',['../udp-redirect_8c.html#a221a9f57d1507473ccaf7c3d11e732d8',1,'udp-redirect.c']]],
-  ['int_5fto_5fhuman_5fvalue_1',['int_to_human_value',['../udp-redirect_8c.html#a4c46a5b2b31514bfefb1b3102c0b6358',1,'udp-redirect.c']]]
+  ['g_5ffail_0',['g_fail',['../udp-redirect-test_8c.html#a1901adb94fd0de553ba236fc3fe0c3d4',1,'udp-redirect-test.c']]],
+  ['g_5fpass_1',['g_pass',['../udp-redirect-test_8c.html#ae75a1f29c1931283084e17413fa7fc41',1,'udp-redirect-test.c']]]
 ];

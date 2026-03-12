@@ -1,5 +1,8 @@
 var searchData=
 [
-  ['int_5fto_5fhuman_5fchar_0',['int_to_human_char',['../udp-redirect_8c.html#a221a9f57d1507473ccaf7c3d11e732d8',1,'udp-redirect.c']]],
-  ['int_5fto_5fhuman_5fvalue_1',['int_to_human_value',['../udp-redirect_8c.html#a4c46a5b2b31514bfefb1b3102c0b6358',1,'udp-redirect.c']]]
+  ['addr_5fequal_0',['addr_equal',['../udp-redirect_8c.html#a5c89bcc66ff71f45ccabbcf21603001b',1,'udp-redirect.c']]],
+  ['addr_5fis_5funset_1',['addr_is_unset',['../udp-redirect_8c.html#a582ab74eb190d0d53abebed46a4e0686',1,'udp-redirect.c']]],
+  ['addr_5flen_2',['addr_len',['../udp-redirect_8c.html#a5b26233ec9185fe4fe9630cbcb86b430',1,'udp-redirect.c']]],
+  ['addr_5fport_3',['addr_port',['../udp-redirect_8c.html#a91e3844da7d318673653e0503a398431',1,'udp-redirect.c']]],
+  ['addr_5ftostring_4',['addr_tostring',['../udp-redirect_8c.html#aae44af7f039bc871a30b8783244bac48',1,'udp-redirect.c']]]
 ];

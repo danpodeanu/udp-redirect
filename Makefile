@@ -29,8 +29,14 @@ install: udp-redirect
 .PHONY: clean
 
 clean:
-	rm -f udp-redirect $(ODIR)/*.o *~ core
+	rm -f udp-redirect udp-redirect-test $(ODIR)/*.o *~ core
 	rm -fr docs/
+
+udp-redirect-test: udp-redirect-test.c udp-redirect.c
+	$(CC) udp-redirect-test.c -o udp-redirect-test $(CFLAGS) -lm
+
+test: udp-redirect-test
+	./udp-redirect-test
 
 docs:
 	doxygen

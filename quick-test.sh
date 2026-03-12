@@ -525,6 +525,102 @@ kill -0 "$BC_PID" 2>/dev/null \
 
 kill "$BC_PID" 2>/dev/null || true
 
+# --- IPv6 support ---
+# parse_addr() tries inet_pton(AF_INET) then inet_pton(AF_INET6), so both
+# families are accepted.  We skip these tests if the kernel has no IPv6
+# loopback (unusual, but possible in some containers).
+if python3 -c "import socket; s=socket.socket(socket.AF_INET6,socket.SOCK_DGRAM); s.bind(('::1',0)); s.close()" 2>/dev/null; then
+    echo "=== IPv6 support ==="
+
+    # (a) Invalid address string is still rejected
+    ./udp-redirect --listen-port 19927 --connect-address "2001:::invalid" \
+        --connect-port 1234 2>/dev/null
+    [ $? -ne 0 ] \
+        && pass "IPv6: invalid address string rejected" \
+        || fail "IPv6: invalid address string rejected"
+
+    # (b) Forwarding via IPv6 loopback (connect-address ::1)
+    #     Because the connect address is IPv6, socket_setup() opens IPv6 sockets
+    #     for both listen and send, so the client must also connect via ::1.
+    LPORT11=19929
+    CPORT11=19930
+    BACKEND11_OUT=/tmp/udpr_test_backend11.txt
+    > "$BACKEND11_OUT"
+
+    python3 -c "
+import socket, sys, select
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('::1', $CPORT11))
+r, _, _ = select.select([s], [], [], 2.0)
+if r:
+    data, _ = s.recvfrom(65535)
+    sys.stdout.buffer.write(data)
+    sys.stdout.flush()
+s.close()
+" > "$BACKEND11_OUT" &
+    PIDS+=($!)
+    sleep 0.2
+
+    ./udp-redirect --listen-port $LPORT11 --connect-address ::1 \
+        --connect-port $CPORT11 2>/dev/null &
+    PIDS+=($!)
+    sleep 0.2
+
+    python3 -c "
+import socket
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.sendto(b'ipv6-forward', ('::1', $LPORT11))
+s.close()
+"
+    sleep 0.5
+
+    grep -q "ipv6-forward" "$BACKEND11_OUT" \
+        && pass "IPv6: packet forwarded via ::1 connect address" \
+        || fail "IPv6: packet forwarded via ::1 connect address"
+
+    # (c) Explicit --listen-address ::1 binds the listen socket to IPv6 loopback
+    LPORT12=19931
+    CPORT12=19932
+    BACKEND12_OUT=/tmp/udpr_test_backend12.txt
+    > "$BACKEND12_OUT"
+
+    python3 -c "
+import socket, sys, select
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('::1', $CPORT12))
+r, _, _ = select.select([s], [], [], 2.0)
+if r:
+    data, _ = s.recvfrom(65535)
+    sys.stdout.buffer.write(data)
+    sys.stdout.flush()
+s.close()
+" > "$BACKEND12_OUT" &
+    PIDS+=($!)
+    sleep 0.2
+
+    ./udp-redirect --listen-address ::1 --listen-port $LPORT12 \
+        --connect-address ::1 --connect-port $CPORT12 2>/dev/null &
+    PIDS+=($!)
+    sleep 0.2
+
+    python3 -c "
+import socket
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.sendto(b'ipv6-listen-addr', ('::1', $LPORT12))
+s.close()
+"
+    sleep 0.5
+
+    grep -q "ipv6-listen-addr" "$BACKEND12_OUT" \
+        && pass "IPv6: packet forwarded with explicit --listen-address ::1" \
+        || fail "IPv6: packet forwarded with explicit --listen-address ::1"
+
+else
+    echo "=== IPv6 support (SKIPPED: IPv6 loopback not available) ==="
+fi
+
 # --- Results ---
 echo ""
 echo "Results: $PASS passed, $FAIL failed"

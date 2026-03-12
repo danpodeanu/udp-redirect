@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['statistics_5fdelay_5fseconds_0',['STATISTICS_DELAY_SECONDS',['../udp-redirect_8c.html#aa1a29c97612ba647f485fae49439e74f',1,'udp-redirect.c']]]
+  ['network_5fbuffer_5fsize_0',['NETWORK_BUFFER_SIZE',['../udp-redirect_8c.html#a4979fa449090ea6181c2f0a91fe512e7',1,'udp-redirect.c']]]
 ];

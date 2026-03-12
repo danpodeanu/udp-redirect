@@ -1,5 +1,7 @@
 var searchData=
 [
-  ['time_5fdisplay_5ffirst_0',['time_display_first',['../structstatistics.html#ae2cc21ddf17618ae0657c052ee9a613e',1,'statistics']]],
-  ['time_5fdisplay_5flast_1',['time_display_last',['../structstatistics.html#a2a0680c786a86eaa1f0f431c3a900821',1,'statistics']]]
+  ['saddr_0',['saddr',['../structsettings.html#ab0ae900aaaa17fc9a66df172ee8ae102',1,'settings']]],
+  ['sif_1',['sif',['../structsettings.html#aca05989209d3cb086986065afacf88b6',1,'settings']]],
+  ['sport_2',['sport',['../structsettings.html#a6144aeafdfb423cabed5f69eb96eb300',1,'settings']]],
+  ['stats_3',['stats',['../structsettings.html#a75f657baf41d582a2481708f1e89e135',1,'settings']]]
 ];
