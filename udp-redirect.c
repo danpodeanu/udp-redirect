@@ -651,6 +651,12 @@ static int parse_addr(const char *str, int port, struct sockaddr_storage *out) {
 
     memset(out, 0, sizeof(*out));
 
+    /* Reject IPv6 zone IDs (e.g. "fe80::1%en0"): inet_pton on macOS silently
+     * accepts them but drops the scope, leading to inconsistent behaviour
+     * across platforms.  Zone IDs are not supported. */
+    if (strchr(str, '%') != NULL)
+        return -1;
+
     if (inet_pton(AF_INET, str, &a4->sin_addr) == 1) {
         out->ss_family = AF_INET;
         a4->sin_port   = htons(port);

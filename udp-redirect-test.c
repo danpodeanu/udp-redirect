@@ -110,7 +110,7 @@ static void test_parse_addr(void) {
           "parse_addr: five-octet string rejected");
     check(parse_addr("", 80, &ss) == -1,
           "parse_addr: empty string rejected");
-    /* IPv6 with zone ID — inet_pton does not accept the '%' scope syntax */
+    /* IPv6 with zone ID — rejected on all platforms (zone IDs are not supported) */
     check(parse_addr("::1%eth0", 80, &ss) == -1,
           "parse_addr: IPv6 zone ID rejected");
 
