@@ -39,6 +39,10 @@ var NAVTREE =
       [ "Listener security", "md__r_e_a_d_m_e.html#autotoc_md10", null ],
       [ "Miscellaneous", "md__r_e_a_d_m_e.html#autotoc_md11", null ]
     ] ],
+    [ "Security Policy", "md__s_e_c_u_r_i_t_y.html", [
+      [ "Supported Versions", "md__s_e_c_u_r_i_t_y.html#autotoc_md13", null ],
+      [ "Reporting a Vulnerability", "md__s_e_c_u_r_i_t_y.html#autotoc_md14", null ]
+    ] ],
     [ "Classes", "annotated.html", [
       [ "Class List", "annotated.html", "annotated_dup" ],
       [ "Class Index", "classes.html", null ],

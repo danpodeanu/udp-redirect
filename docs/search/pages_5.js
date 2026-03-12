@@ -1,5 +1,4 @@
 var searchData=
 [
-  ['redirect_0',['udp-redirect',['../md__r_e_a_d_m_e.html',1,'']]],
-  ['run_1',['Run',['../md__r_e_a_d_m_e.html#autotoc_md3',1,'']]]
+  ['policy_0',['Security Policy',['../md__s_e_c_u_r_i_t_y.html',1,'']]]
 ];
