@@ -1,16 +1,15 @@
 var searchData=
 [
-  ['saddr_0',['saddr',['../structsettings.html#ab0ae900aaaa17fc9a66df172ee8ae102',1,'settings']]],
-  ['security_1',['security',['../md_README.html#autotoc_md16',1,'Listener security'],['../md_README.html#autotoc_md7',1,'Security']]],
-  ['sender_2',['Sender',['../md_README.html#autotoc_md15',1,'']]],
-  ['settings_3',['settings',['../structsettings.html',1,'']]],
-  ['settings_5finitialize_4',['settings_initialize',['../udp-redirect_8c.html#a7a34b83efc5dbf0c7a938d9f07fdbccb',1,'udp-redirect.c']]],
-  ['sif_5',['sif',['../structsettings.html#aca05989209d3cb086986065afacf88b6',1,'settings']]],
-  ['socket_5fsetup_6',['socket_setup',['../udp-redirect_8c.html#a7c1968beedd58e96bd5883c5ee476fc5',1,'udp-redirect.c']]],
-  ['sport_7',['sport',['../structsettings.html#a6144aeafdfb423cabed5f69eb96eb300',1,'settings']]],
-  ['statistics_8',['statistics',['../structstatistics.html',1,'']]],
-  ['statistics_5fdelay_5fseconds_9',['STATISTICS_DELAY_SECONDS',['../udp-redirect_8c.html#aa1a29c97612ba647f485fae49439e74f',1,'udp-redirect.c']]],
-  ['statistics_5fdisplay_10',['statistics_display',['../udp-redirect_8c.html#af333d2c7ec6c46fdf5ba1ede197c9fc4',1,'udp-redirect.c']]],
-  ['statistics_5finitialize_11',['statistics_initialize',['../udp-redirect_8c.html#af6d101333c4654c64f400cedab535cbe',1,'udp-redirect.c']]],
-  ['stats_12',['stats',['../structsettings.html#a75f657baf41d582a2481708f1e89e135',1,'settings']]]
+  ['test_5faddr_5fequal_0',['test_addr_equal',['../udp-redirect-test_8c.html#ae5be85bee4565e64b02f3ba4ac46eaa8',1,'udp-redirect-test.c']]],
+  ['test_5faddr_5fis_5funset_1',['test_addr_is_unset',['../udp-redirect-test_8c.html#aab4965ca7d4784cbf483142e65048d1b',1,'udp-redirect-test.c']]],
+  ['test_5faddr_5flen_2',['test_addr_len',['../udp-redirect-test_8c.html#a4160fbc3560f7a5b0a201f4e32f02aed',1,'udp-redirect-test.c']]],
+  ['test_5faddr_5fport_3',['test_addr_port',['../udp-redirect-test_8c.html#a6153ca177472f5a10a84985f8a3cb91e',1,'udp-redirect-test.c']]],
+  ['test_5faddr_5ftostring_4',['test_addr_tostring',['../udp-redirect-test_8c.html#ae821a978b3aa0a27663a70b17c1ae71e',1,'udp-redirect-test.c']]],
+  ['test_5fint_5fto_5fhuman_5',['test_int_to_human',['../udp-redirect-test_8c.html#af313383086eb7c79a17a3eb904c54bea',1,'udp-redirect-test.c']]],
+  ['test_5fparse_5faddr_6',['test_parse_addr',['../udp-redirect-test_8c.html#a9dd18703a6f20a824cffea789d1b0538',1,'udp-redirect-test.c']]],
+  ['test_5fsettings_5finitialize_7',['test_settings_initialize',['../udp-redirect-test_8c.html#afb211b747cf0c2d7cebb10d0c5205967',1,'udp-redirect-test.c']]],
+  ['test_5fstatistics_5fdisplay_8',['test_statistics_display',['../udp-redirect-test_8c.html#ab04814d2f54f5f830d3cd9787ddb7a63',1,'udp-redirect-test.c']]],
+  ['test_5fstatistics_5finitialize_9',['test_statistics_initialize',['../udp-redirect-test_8c.html#aafb60f64cf65a286a229ef41e6fd5bd3',1,'udp-redirect-test.c']]],
+  ['time_5fdisplay_5ffirst_10',['time_display_first',['../structstatistics.html#ae2cc21ddf17618ae0657c052ee9a613e',1,'statistics']]],
+  ['time_5fdisplay_5flast_11',['time_display_last',['../structstatistics.html#a2a0680c786a86eaa1f0f431c3a900821',1,'statistics']]]
 ];

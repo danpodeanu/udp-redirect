@@ -5,6 +5,5 @@ var searchData=
   ['addr_5flen_2',['addr_len',['../udp-redirect_8c.html#a5b26233ec9185fe4fe9630cbcb86b430',1,'udp-redirect.c']]],
   ['addr_5fport_3',['addr_port',['../udp-redirect_8c.html#a91e3844da7d318673653e0503a398431',1,'udp-redirect.c']]],
   ['addr_5ftostring_4',['addr_tostring',['../udp-redirect_8c.html#aae44af7f039bc871a30b8783244bac48',1,'udp-redirect.c']]],
-  ['architecture_5',['Architecture',['../md_CLAUDE.html#autotoc_md4',1,'']]],
-  ['arguments_6',['Command Line Arguments',['../md_README.html#autotoc_md11',1,'']]]
+  ['arguments_5',['Command Line Arguments',['../md__r_e_a_d_m_e.html#autotoc_md5',1,'']]]
 ];
