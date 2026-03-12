@@ -34,7 +34,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "1.2.0"
+#define UDP_REDIRECT_VERSION    "2.0.0"
 
 /**
  * The delay in seconds between displaying statistics
