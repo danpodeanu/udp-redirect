@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['hrf_0',['HRF',['../udp-redirect_8c.html#af8187649cc70fef7bc12e2b46132828f',1,'udp-redirect.c']]],
-  ['human_5freadable_1',['HUMAN_READABLE',['../udp-redirect_8c.html#aafd1385f667428995fb7726666f3b2dd',1,'udp-redirect.c']]],
-  ['human_5freadable_5fformat_2',['HUMAN_READABLE_FORMAT',['../udp-redirect_8c.html#a083665e5ba65ce84c1679f6dde27f2b5',1,'udp-redirect.c']]],
-  ['human_5freadable_5fsizes_3',['HUMAN_READABLE_SIZES',['../udp-redirect_8c.html#aaa7f127ff14ffb80d41f435f8c4212bb',1,'udp-redirect.c']]],
-  ['human_5freadable_5fsizes_5fcount_4',['HUMAN_READABLE_SIZES_COUNT',['../udp-redirect_8c.html#a344ae63974c1221e332ef0429d0aa389',1,'udp-redirect.c']]]
+  ['int_5fto_5fhuman_5fchar_0',['int_to_human_char',['../udp-redirect_8c.html#a221a9f57d1507473ccaf7c3d11e732d8',1,'udp-redirect.c']]],
+  ['int_5fto_5fhuman_5fscale_1',['int_to_human_scale',['../udp-redirect_8c.html#aaf7c23dbc7a20ab1c245772c1a0151fe',1,'udp-redirect.c']]],
+  ['int_5fto_5fhuman_5fvalue_2',['int_to_human_value',['../udp-redirect_8c.html#a4c46a5b2b31514bfefb1b3102c0b6358',1,'udp-redirect.c']]]
 ];
