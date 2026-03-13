@@ -1,7 +1,7 @@
 /**
  * @file udp-redirect.c
  * @author Dan Podeanu <pdan@esync.org>
- * @version 1.0.0
+ * @version 2.0.0
  *
  * @section LICENSE
  *
@@ -12,7 +12,22 @@
  *
  * @section DESCRIPTION
  *
- * A simple and high performance UDP redirector.
+ * A single-file, high-performance UDP packet redirector supporting IPv4 and
+ * IPv6.  Useful when layer-level redirection (e.g., firewall rules) is
+ * impractical — common use cases include Wireguard VPN, DNS, and game servers.
+ *
+ * Design overview:
+ * - Two non-blocking UDP sockets: a *listen* socket (faces the local client)
+ *   and a *send* socket (faces the remote endpoint).
+ * - A poll(2)-based main loop with a 1-second timeout drives all I/O; no
+ *   threads or dynamic allocation occur inside the loop.
+ * - Packets arriving on the listen socket are forwarded to the connect
+ *   endpoint; replies arriving on the send socket are forwarded back to the
+ *   most-recently-seen listen-side source.
+ * - Optional strict-mode flags limit which sources are accepted on each side.
+ * - Optional 60-second windowed statistics are printed to stderr.
+ *
+ * Targets: Linux x86-64 (SO_BINDTODEVICE) and macOS/Darwin arm64 (IP_BOUND_IF).
  */
 
 #include <stdio.h>
@@ -124,8 +139,8 @@ static struct option longopts[] = {
     { "listen-port",           required_argument,      NULL,           'b' }, ///< Listen port (required)
     { "listen-interface",      required_argument,      NULL,           'c' }, ///< Listen interface (optional)
 
-    { "connect-address",       required_argument,      NULL,           'g' }, ///< Connect address (required)
-    { "connect-host",          required_argument,      NULL,           'h' }, ///< Connect host (required)
+    { "connect-address",       required_argument,      NULL,           'g' }, ///< Connect address (optional if --connect-host is specified)
+    { "connect-host",          required_argument,      NULL,           'h' }, ///< Connect host (optional if --connect-address is specified)
     { "connect-port",          required_argument,      NULL,           'i' }, ///< Connect port (required)
 
     { "send-address",          required_argument,      NULL,           'm' }, ///< Send packets address (optional)
@@ -176,35 +191,39 @@ struct settings {
 };
 
 /**
- * Store and display statistics
+ * Per-window and cumulative traffic counters.
+ *
+ * Window fields (no _total suffix) are reset to zero after each call to
+ * statistics_display().  Total fields accumulate for the lifetime of the
+ * process.  Both sets are updated inside statistics_display() before printing.
  */
 struct statistics {
-    time_t time_display_last;
-    time_t time_display_first;
+    time_t time_display_last;   ///< Wall-clock time of the last statistics_display() call; used to compute the window duration
+    time_t time_display_first;  ///< Wall-clock time of the first statistics_display() call; used to compute the cumulative duration
 
-    unsigned long count_listen_packet_receive;
-    unsigned long count_listen_byte_receive;
+    unsigned long count_listen_packet_receive;  ///< Packets received on the listen socket this window
+    unsigned long count_listen_byte_receive;    ///< Bytes received on the listen socket this window
 
-    unsigned long count_listen_packet_send;
-    unsigned long count_listen_byte_send;
+    unsigned long count_listen_packet_send;     ///< Packets sent back on the listen socket (connect→client) this window
+    unsigned long count_listen_byte_send;       ///< Bytes sent back on the listen socket this window
 
-    unsigned long count_connect_packet_receive;
-    unsigned long count_connect_byte_receive;
+    unsigned long count_connect_packet_receive; ///< Packets received on the send socket (from remote endpoint) this window
+    unsigned long count_connect_byte_receive;   ///< Bytes received on the send socket this window
 
-    unsigned long count_connect_packet_send;
-    unsigned long count_connect_byte_send;
+    unsigned long count_connect_packet_send;    ///< Packets forwarded to the remote endpoint this window
+    unsigned long count_connect_byte_send;      ///< Bytes forwarded to the remote endpoint this window
 
-    unsigned long count_listen_packet_receive_total;
-    unsigned long count_listen_byte_receive_total;
+    unsigned long count_listen_packet_receive_total;  ///< Cumulative packets received on the listen socket
+    unsigned long count_listen_byte_receive_total;    ///< Cumulative bytes received on the listen socket
 
-    unsigned long count_listen_packet_send_total;
-    unsigned long count_listen_byte_send_total;
+    unsigned long count_listen_packet_send_total;     ///< Cumulative packets sent back on the listen socket
+    unsigned long count_listen_byte_send_total;       ///< Cumulative bytes sent back on the listen socket
 
-    unsigned long count_connect_packet_receive_total;
-    unsigned long count_connect_byte_receive_total;
+    unsigned long count_connect_packet_receive_total; ///< Cumulative packets received on the send socket
+    unsigned long count_connect_byte_receive_total;   ///< Cumulative bytes received on the send socket
 
-    unsigned long count_connect_packet_send_total;
-    unsigned long count_connect_byte_send_total;
+    unsigned long count_connect_packet_send_total;    ///< Cumulative packets forwarded to the remote endpoint
+    unsigned long count_connect_byte_send_total;      ///< Cumulative bytes forwarded to the remote endpoint
 };
 
 /* Function prototypes */
@@ -396,8 +415,6 @@ int main(int argc, char *argv[]) {
     }
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "---- INFO ----");
-
-//    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Debug level: %d", debug_level);
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen address: %s", (s.laddr != NULL)?s.laddr:"ANY");
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Listen port: %d", s.lport);
@@ -871,7 +888,10 @@ static int socket_setup(const int debug_level, const char *desc, const char *xad
  * Resolve a host to an IP address.
  * @param[in] debug_level The debug level to be used for the DEBUG() macro
  * @param[in] host The host to resolve
- * @return A newly allocated buffer containing the IP.
+ * @return A newly heap-allocated NUL-terminated string containing the resolved
+ *         IP address (IPv4 dotted-quad or IPv6 colon-separated).  The caller
+ *         owns the buffer and must free() it when done.  On failure the
+ *         function prints a diagnostic and calls exit(EXIT_FAILURE).
  */
 static char *resolve_host(int debug_level, const char *host) {
     struct addrinfo hints;
@@ -1114,6 +1134,7 @@ void statistics_display(int debug_level, struct statistics *st, time_t now) {
     time_t time_delta = now - st->time_display_last;
     time_t time_delta_total = now - st->time_display_first;
 
+    /* Clamp to 1 to avoid division by zero when called within the same second. */
     if (time_delta < 1)
         time_delta = 1;
     if (time_delta_total < 1)
