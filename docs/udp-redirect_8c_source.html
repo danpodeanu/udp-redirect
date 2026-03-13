@@ -109,7 +109,7 @@ $(function(){initNavTree('udp-redirect_8c_source.html','',''); });
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span><span class="preprocessor">#include &lt;netdb.h&gt;</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="preprocessor">#include &lt;time.h&gt;</span></div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span></div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno"><a class="line" href="udp-redirect_8c.html#ada596d113080b14fcf0680f118baf602">   52</a></span><span class="preprocessor">#define UDP_REDIRECT_VERSION    &quot;2.1.0&quot;</span></div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno"><a class="line" href="udp-redirect_8c.html#ada596d113080b14fcf0680f118baf602">   52</a></span><span class="preprocessor">#define UDP_REDIRECT_VERSION    &quot;2.1.1&quot;</span></div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span></div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno"><a class="line" href="udp-redirect_8c.html#aa1a29c97612ba647f485fae49439e74f">   57</a></span><span class="preprocessor">#define STATISTICS_DELAY_SECONDS    60</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span></div>
@@ -976,8 +976,8 @@ $(function(){initNavTree('udp-redirect_8c_source.html','',''); });
 <div class="line"><a id="l01007" name="l01007"></a><span class="lineno"> 1007</span>    fprintf(stderr, <span class="stringliteral">&quot;--listen-interface &lt;interface&gt;          Listen interface name (optional)\n&quot;</span>);</div>
 <div class="line"><a id="l01008" name="l01008"></a><span class="lineno"> 1008</span>    fprintf(stderr, <span class="stringliteral">&quot;--listen-address-strict                 Only receive packets from the same source as the first packet (optional)\n&quot;</span>);</div>
 <div class="line"><a id="l01009" name="l01009"></a><span class="lineno"> 1009</span>    fprintf(stderr, <span class="stringliteral">&quot;\n&quot;</span>);</div>
-<div class="line"><a id="l01010" name="l01010"></a><span class="lineno"> 1010</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-address &lt;address&gt;             Connect address, IPv4 or IPv6 (required)\n&quot;</span>);</div>
-<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-host &lt;hostname&gt;               Connect host, overwrites --connect-address if both are specified (required)\n&quot;</span>);</div>
+<div class="line"><a id="l01010" name="l01010"></a><span class="lineno"> 1010</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-address &lt;address&gt;             Connect address, IPv4 or IPv6 (optional if --connect-host is specified)\n&quot;</span>);</div>
+<div class="line"><a id="l01011" name="l01011"></a><span class="lineno"> 1011</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-host &lt;hostname&gt;               Connect host, overwrites --connect-address if both are specified (optional if --connect-address is specified)\n&quot;</span>);</div>
 <div class="line"><a id="l01012" name="l01012"></a><span class="lineno"> 1012</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-port &lt;port&gt;                   Connect port (required)\n&quot;</span>);</div>
 <div class="line"><a id="l01013" name="l01013"></a><span class="lineno"> 1013</span>    fprintf(stderr, <span class="stringliteral">&quot;--connect-address-strict                Only receive packets from --connect-address / --connect-port (optional)\n&quot;</span>);</div>
 <div class="line"><a id="l01014" name="l01014"></a><span class="lineno"> 1014</span>    fprintf(stderr, <span class="stringliteral">&quot;\n&quot;</span>);</div>
