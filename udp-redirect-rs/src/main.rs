@@ -22,7 +22,7 @@ extern "C" {
 // Constants
 // ──────────────────────────────────────────────────────────────────────────
 
-const VERSION: &str = "2.1.0";
+const VERSION: &str = "2.1.1";
 const STATISTICS_DELAY_SECONDS: i64 = 60;
 const NETWORK_BUFFER_SIZE: usize = 65535;
 
@@ -491,6 +491,10 @@ fn resolve_host(debug_level: i32, host: &str) -> String {
         process::exit(1);
     }
 
+    if res.is_null() {
+        debug!(debug_level, DEBUG_LEVEL_ERROR, "Could not resolve host {}: getaddrinfo returned no results", host);
+        process::exit(1);
+    }
     let ai = unsafe { &*res };
     let mut buf = vec![0u8; INET6_ADDRSTRLEN as usize];
 

@@ -100,8 +100,8 @@ The UDP redirector sends packets to the endpoint specified below.
 
 | Argument | Parameters | Req/Opt | Description |
 | --- | --- | --- | --- |
-| ```--connect-address``` | address | **required** | Connect address (IPv4 or IPv6). |
-| ```--connect-host``` | hostname | **required** | Connect host, overwrites ```connect-address``` if both are specified. |
+| ```--connect-address``` | address | *optional if `--connect-host` is specified* | Connect address (IPv4 or IPv6). |
+| ```--connect-host``` | hostname | *optional if `--connect-address` is specified* | Connect host; overwrites `--connect-address` if both are specified. |
 | ```--connect-port``` | port | **required** | Connect port. |
 | ```--connect-address-strict``` | | *optional* | **Security**: Only accept packets from ```connect-host``` and ```connect-port```, otherwise accept from all sources. |
 

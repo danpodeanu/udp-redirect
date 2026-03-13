@@ -1,7 +1,7 @@
 /**
  * @file udp-redirect.c
  * @author Dan Podeanu <pdan@esync.org>
- * @version 2.1.0
+ * @version 2.1.1
  *
  * @section LICENSE
  *
@@ -49,7 +49,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "2.1.0"
+#define UDP_REDIRECT_VERSION    "2.1.1"
 
 /**
  * The delay in seconds between displaying statistics
@@ -1007,8 +1007,8 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--listen-interface <interface>          Listen interface name (optional)\n");
     fprintf(stderr, "--listen-address-strict                 Only receive packets from the same source as the first packet (optional)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--connect-address <address>             Connect address, IPv4 or IPv6 (required)\n");
-    fprintf(stderr, "--connect-host <hostname>               Connect host, overwrites --connect-address if both are specified (required)\n");
+    fprintf(stderr, "--connect-address <address>             Connect address, IPv4 or IPv6 (optional if --connect-host is specified)\n");
+    fprintf(stderr, "--connect-host <hostname>               Connect host, overwrites --connect-address if both are specified (optional if --connect-address is specified)\n");
     fprintf(stderr, "--connect-port <port>                   Connect port (required)\n");
     fprintf(stderr, "--connect-address-strict                Only receive packets from --connect-address / --connect-port (optional)\n");
     fprintf(stderr, "\n");
