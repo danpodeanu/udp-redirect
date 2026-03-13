@@ -27,7 +27,7 @@
  * - Optional strict-mode flags limit which sources are accepted on each side.
  * - Optional 60-second windowed statistics are printed to stderr.
  *
- * Targets: Linux x86-64 (SO_BINDTODEVICE) and macOS/Darwin arm64 (IP_BOUND_IF).
+ * Targets: Linux x86-64 and macOS/Darwin arm64.
  */
 
 #include <stdio.h>
