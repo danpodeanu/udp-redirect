@@ -26,10 +26,11 @@ var NAVTREE =
 [
   [ "UDP Redirect", "index.html", [
     [ "udp-redirect", "md__r_e_a_d_m_e.html", [
-      [ "Security", "md__r_e_a_d_m_e.html#autotoc_md1", null ],
-      [ "Compile", "md__r_e_a_d_m_e.html#autotoc_md2", null ],
-      [ "Run", "md__r_e_a_d_m_e.html#autotoc_md3", null ],
-      [ "Documentation", "md__r_e_a_d_m_e.html#autotoc_md4", null ],
+      [ "Documentation", "md__r_e_a_d_m_e.html#autotoc_md1", [
+        [ "Security", "md__r_e_a_d_m_e.html#autotoc_md2", null ],
+        [ "Compile", "md__r_e_a_d_m_e.html#autotoc_md3", null ],
+        [ "Run", "md__r_e_a_d_m_e.html#autotoc_md4", null ]
+      ] ],
       [ "Command Line Arguments", "md__r_e_a_d_m_e.html#autotoc_md5", [
         [ "Debug", "md__r_e_a_d_m_e.html#autotoc_md6", null ],
         [ "Listener", "md__r_e_a_d_m_e.html#autotoc_md7", null ],

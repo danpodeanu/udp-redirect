@@ -94,19 +94,22 @@ $(function(){initNavTree('md__r_e_a_d_m_e.html','',''); });
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a></p>
 <p>A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6. Tested on Linux x64 and MacOS / Darwin arm64.</p>
 <p>Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.</p>
-<p>Single file source code for convenience.</p>
-<p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="GitHub CI" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
+<p>Single file source code for convenience. Offers both C and Rust versions.</p>
+<p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="C CI" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/rust.yml/badge.svg" alt="Rust CI" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/docs.yml/badge.svg" alt="Docs" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
 <p><b>Community contributions are welcome.</b></p>
 <h1 class="doxsection"><a class="anchor" id="autotoc_md1"></a>
-Security</h1>
-<p>Supports enforcing the packet source for all received packets. This only provides modest security improvements as generating UDP packets is trivial.</p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md2"></a>
-Compile</h1>
+Documentation</h1>
+<p>Doxygen generated documentation: <a href="https://danpodeanu.github.io/udp-redirect/">https://danpodeanu.github.io/udp-redirect/</a></p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md2"></a>
+Security</h2>
+<p>By default, the listener accepts packets from any source and forwards replies to the most recently seen source. This makes the process an unauthenticated UDP relay. If the listen port is reachable by untrusted networks, lock it down with <span class="tt">--listen-address-strict</span> and/or <span class="tt">--listen-sender-address</span> + <span class="tt">--listen-sender-port</span>, and consider firewalling the listen port to expected sources only.</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md3"></a>
+Compile</h2>
 <div class="fragment"><div class="line"># make</div>
 </div><!-- fragment --><p>or</p>
 <div class="fragment"><div class="line"># gcc udp-redirect.c -o udp-redirect -Wall -O3</div>
-</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md3"></a>
-Run</h1>
+</div><!-- fragment --><h2 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
+Run</h2>
 <div class="fragment"><div class="line">./udp-redirect \</div>
 <div class="line">    --listen-port 51821 \</div>
 <div class="line">    --connect-host example.endpoint.net --connect-port 51822</div>
@@ -131,10 +134,7 @@ Run</h1>
 <div class="line">listen:send:packets: 98.3K (537.1 /s), listen:send:bytes: 122.9M (671.4K/s)</div>
 <div class="line">connect:receive:packets: 98.3K (537.1 /s), connect:receive:bytes: 122.9M (671.4K/s)</div>
 <div class="line">connect:send:packets: 45.8K (250.0 /s), connect:send:bytes: 13.2M (72.4K/s)</div>
-</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
-Documentation</h1>
-<p>Doxygen generated documentation in <a href="docs/">docs</a>/index.html</p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
+</div><!-- fragment --><h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
 Command Line Arguments</h1>
 <div class="fragment"><div class="line">-redirect [arguments]</div>
 </div><!-- fragment --><p>Runs in foreground and expects external process control (svscan, nohup, etc.)</p>
