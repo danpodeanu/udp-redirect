@@ -66,7 +66,7 @@ connect:send:packets: 45.8K (250.0 /s), connect:send:bytes: 13.2M (72.4K/s)
 
 # Documentation
 
-Doxygen generated documentation in [docs](docs/)/index.html
+Doxygen generated documentation: [https://danpodeanu.github.io/udp-redirect/](https://danpodeanu.github.io/udp-redirect/)
 
 # Command Line Arguments
 
