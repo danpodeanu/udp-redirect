@@ -13,13 +13,13 @@ Single file source code for convenience. Offers both C and Rust versions.
 
 **Community contributions are welcome.**
 
-## Security
-
-Supports enforcing the packet source for all received packets. This only provides modest security improvements as generating UDP packets is trivial.
-
 # Documentation
 
 Doxygen generated documentation: [https://danpodeanu.github.io/udp-redirect/](https://danpodeanu.github.io/udp-redirect/)
+
+## Security
+
+By default, the listener accepts packets from any source and forwards replies to the most recently seen source. This makes the process an unauthenticated UDP relay. If the listen port is reachable by untrusted networks, lock it down with `--listen-address-strict` and/or `--listen-sender-address` + `--listen-sender-port`, and consider firewalling the listen port to expected sources only.
 
 ## Compile
 

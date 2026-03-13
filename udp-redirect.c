@@ -410,8 +410,10 @@ int main(int argc, char *argv[]) {
     }
 
     /* Resolve connect host if available */
+    char *caddr_alloc = NULL;
     if (s.chost != NULL) {
-        s.caddr = resolve_host(debug_level, s.chost);
+        caddr_alloc = resolve_host(debug_level, s.chost);
+        s.caddr = caddr_alloc;
     }
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "---- INFO ----");
@@ -457,7 +459,14 @@ int main(int argc, char *argv[]) {
     if (parse_addr(s.caddr, s.cport, &caddr) == -1) {
         DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid connect address: %s", s.caddr);
 
+        if (caddr_alloc != NULL) {
+            free(caddr_alloc);
+        }
         exit(EXIT_FAILURE);
+    }
+    if (caddr_alloc != NULL) {
+        free(caddr_alloc);
+        s.caddr = NULL;
     }
 
     lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, (int)caddr.ss_family, &lsock_name); /* Set up listening socket */
@@ -539,7 +548,7 @@ int main(int argc, char *argv[]) {
                     exit(EXIT_FAILURE);
                 }
             }
-            if (recvfrom_retval > 0) {
+            if (recvfrom_retval >= 0) {
                 st.count_listen_packet_receive++;
                 st.count_listen_byte_receive += recvfrom_retval;
 
@@ -603,7 +612,7 @@ int main(int argc, char *argv[]) {
                     exit(EXIT_FAILURE);
                 }
             }
-            if (recvfrom_retval > 0) {
+            if (recvfrom_retval >= 0) {
                 st.count_connect_packet_receive++;
                 st.count_connect_byte_receive += recvfrom_retval;
 

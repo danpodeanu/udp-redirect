@@ -58,8 +58,11 @@ is simple yet flexible and very fast UDP redirector. Tested on Linux x64 and Mac
 Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, Minecraft, etc.) when doing it at
 a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
 .PP
-Supports enforcing the packet source for all received packets. This only provides modest
-security improvements as generating UDP packets is trivial.
+By default, the listener accepts packets from any source and forwards replies to the most
+recently seen source. This makes the process an unauthenticated UDP relay. If the listen
+port is reachable by untrusted networks, use --listen-address-strict and/or
+--listen-sender-address with --listen-sender-port, and consider firewalling the listen port
+to expected sources only.
 .\" --------------------------------------------------------------------------
 .\" Usage
 .\" --------------------------------------------------------------------------

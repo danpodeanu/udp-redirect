@@ -6,6 +6,8 @@
 PASS=0
 FAIL=0
 PIDS=()
+TMPFILES=()
+TMPDIR=""
 
 pass() { echo "PASS: $1"; PASS=$((PASS+1)); }
 fail() { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
@@ -14,9 +16,29 @@ cleanup() {
     for pid in "${PIDS[@]}"; do
         kill "$pid" 2>/dev/null || true
     done
-    rm -f /tmp/udpr_test_*
+    for f in "${TMPFILES[@]}"; do
+        rm -f "$f" 2>/dev/null || true
+    done
+    if [ -n "$TMPDIR" ]; then
+        rm -rf "$TMPDIR" 2>/dev/null || true
+    fi
 }
 trap cleanup EXIT
+
+make_tmpfile() {
+    local f
+    f=$(mktemp "${TMPDIR}/udpr_test.XXXXXX") || exit 1
+    TMPFILES+=("$f")
+    echo "$f"
+}
+
+make_tmpdir() {
+    local d
+    d=$(mktemp -d "./udpr_test.d.XXXXXX") || exit 1
+    TMPDIR="$d"
+}
+
+make_tmpdir
 
 # --- Build C ---
 echo "=== build C ==="
@@ -34,7 +56,12 @@ echo "=== Rust unit tests ==="
 
 # --- int_to_human scaling consistency (C-only; Rust covered by cargo test) ---
 echo "=== int_to_human scaling consistency ==="
-cat > /tmp/udpr_test_human.c << 'CEOF'
+HUMAN_C_FILE=$(mktemp "${TMPDIR}/udpr_test.XXXXXX.c") || exit 1
+TMPFILES+=("$HUMAN_C_FILE")
+HUMAN_BIN="${TMPDIR}/udpr_test_human"
+HUMAN_GCC_ERR=$(make_tmpfile)
+TMPFILES+=("$HUMAN_BIN")
+cat > "$HUMAN_C_FILE" << 'CEOF'
 #include <stdio.h>
 #include <math.h>
 #define HUMAN_READABLE_SIZES       { ' ', 'K', 'M', 'G', 'T', 'P', 'E' }
@@ -66,13 +93,22 @@ int main(void) {
     return f;
 }
 CEOF
-if gcc /tmp/udpr_test_human.c -o /tmp/udpr_test_human -lm 2>/dev/null \
-        && /tmp/udpr_test_human; then
-    pass "int_to_human: value and char functions agree across SI boundaries"
+if gcc "$HUMAN_C_FILE" -o "$HUMAN_BIN" -lm 2>"$HUMAN_GCC_ERR"; then
+    chmod +x "$HUMAN_BIN" 2>/dev/null || true
+    if "$HUMAN_BIN"; then
+        pass "int_to_human: value and char functions agree across SI boundaries"
+    else
+        echo "int_to_human: executable failed with status $?"
+        ls -l "$HUMAN_BIN" 2>/dev/null || true
+        fail "int_to_human: value and char functions agree across SI boundaries"
+    fi
 else
+    echo "int_to_human: gcc failed"
+    if [ -s "$HUMAN_GCC_ERR" ]; then
+        cat "$HUMAN_GCC_ERR"
+    fi
     fail "int_to_human: value and char functions agree across SI boundaries"
 fi
-rm -f /tmp/udpr_test_human.c /tmp/udpr_test_human
 
 # ---------------------------------------------------------------------------
 # run_tests BIN PORT_BASE
@@ -103,6 +139,7 @@ run_tests() {
     local P27=$((19927+B))                   # IPv6 invalid address
     local P29=$((19929+B)) P30=$((19930+B))  # IPv6 forwarding
     local P31=$((19931+B)) P32=$((19932+B))  # IPv6 --listen-address
+    local P33=$((19933+B)) P34=$((19934+B))  # zero-length datagrams
 
     echo ""
     echo "===== $LABEL ====="
@@ -149,7 +186,8 @@ run_tests() {
 
     # --- Forwarding (listen -> connect) ---
     echo "=== $LABEL: forwarding ==="
-    local BACKEND_OUT=/tmp/udpr_test_${B}_backend.txt
+    local BACKEND_OUT
+    BACKEND_OUT=$(make_tmpfile)
     > "$BACKEND_OUT"
     nc -u -l $P2 > "$BACKEND_OUT" &
     PIDS+=($!)
@@ -165,7 +203,8 @@ run_tests() {
 
     # --- Forwarding: multiple packets ---
     echo "=== $LABEL: forwarding: multiple packets ==="
-    local BACKEND2_OUT=/tmp/udpr_test_${B}_backend2.txt
+    local BACKEND2_OUT
+    BACKEND2_OUT=$(make_tmpfile)
     > "$BACKEND2_OUT"
     nc -u -l $P4 > "$BACKEND2_OUT" &
     PIDS+=($!)
@@ -180,10 +219,47 @@ run_tests() {
     grep -q "packet-two"   "$BACKEND2_OUT" && pass "$LABEL: multiple packets: 2 arrived" || fail "$LABEL: multiple packets: 2 arrived"
     grep -q "packet-three" "$BACKEND2_OUT" && pass "$LABEL: multiple packets: 3 arrived" || fail "$LABEL: multiple packets: 3 arrived"
 
+    # --- Forwarding: zero-length datagram ---
+    if command -v python3 >/dev/null 2>&1; then
+        echo "=== $LABEL: forwarding: zero-length datagram ==="
+        local ZERO_OUT
+        ZERO_OUT=$(make_tmpfile)
+        > "$ZERO_OUT"
+        python3 - <<PY > "$ZERO_OUT" &
+import socket, select, sys
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind(('', $P34))
+r, _, _ = select.select([s], [], [], 2.0)
+if r:
+    data, _ = s.recvfrom(65535)
+    sys.stdout.write(str(len(data)))
+    sys.stdout.flush()
+s.close()
+PY
+        PIDS+=($!)
+        sleep 0.2
+        "$BIN" --listen-port $P33 --connect-address 127.0.0.1 --connect-port $P34 2>/dev/null &
+        PIDS+=($!)
+        sleep 0.2
+        python3 - <<PY
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(b'', ('127.0.0.1', $P33))
+s.close()
+PY
+        sleep 0.5
+        grep -q "^0$" "$ZERO_OUT" \
+            && pass "$LABEL: zero-length datagram forwarded" \
+            || fail "$LABEL: zero-length datagram forwarded"
+    else
+        echo "=== $LABEL: forwarding: zero-length datagram (SKIPPED: python3 not found) ==="
+    fi
+
     # --- Two-way forwarding (socat) ---
     if command -v socat >/dev/null 2>&1; then
         echo "=== $LABEL: forwarding: two-way ==="
-        local CLIENT_OUT=/tmp/udpr_test_${B}_client.txt
+        local CLIENT_OUT
+        CLIENT_OUT=$(make_tmpfile)
         > "$CLIENT_OUT"
         socat UDP4-RECVFROM:$P6,fork EXEC:'cat' &
         PIDS+=($!)
@@ -202,7 +278,8 @@ run_tests() {
     # --- Source address/port filtering ---
     if command -v python3 >/dev/null 2>&1; then
         echo "=== $LABEL: forwarding: source filtering ==="
-        local BACKEND4_OUT=/tmp/udpr_test_${B}_backend4.txt
+        local BACKEND4_OUT
+        BACKEND4_OUT=$(make_tmpfile)
         > "$BACKEND4_OUT"
         python3 -c "
 import socket, sys, select
@@ -237,7 +314,8 @@ s.close()
         kill "$BACKEND4_PID" 2>/dev/null || true
         sleep 0.1
 
-        local BACKEND4B_OUT=/tmp/udpr_test_${B}_backend4b.txt
+        local BACKEND4B_OUT
+        BACKEND4B_OUT=$(make_tmpfile)
         > "$BACKEND4B_OUT"
         python3 -c "
 import socket, sys, select
@@ -272,7 +350,8 @@ s.close()
     # regardless of whether the OS resolves "localhost" to 127.0.0.1 or ::1
     # (macOS getaddrinfo returns ::1 first; nc -u -l binds IPv4 only → mismatch).
     echo "=== $LABEL: hostname resolution ==="
-    local BACKEND5_OUT=/tmp/udpr_test_${B}_backend5.txt
+    local BACKEND5_OUT
+    BACKEND5_OUT=$(make_tmpfile)
     > "$BACKEND5_OUT"
     if command -v python3 >/dev/null 2>&1; then
         python3 -c "
@@ -308,7 +387,8 @@ s.close()
 
     # --- Stats first window timing ---
     echo "=== $LABEL: stats first window timing ==="
-    local STATS_OUT=/tmp/udpr_test_${B}_stats.txt
+    local STATS_OUT
+    STATS_OUT=$(make_tmpfile)
     "$BIN" --listen-port $P13 --connect-address 127.0.0.1 --connect-port $P14 \
         --stats --verbose 2>"$STATS_OUT" &
     local STATS_PID=$!
@@ -321,7 +401,8 @@ s.close()
 
     # --- --stats without --verbose ---
     echo "=== $LABEL: --stats without --verbose ==="
-    local FIX6_OUT=/tmp/udpr_test_${B}_fix6.txt
+    local FIX6_OUT
+    FIX6_OUT=$(make_tmpfile)
     "$BIN" --listen-port $P15 --connect-address 127.0.0.1 --connect-port $P16 \
         --stats 2>"$FIX6_OUT" &
     local FIX6_PID=$!
@@ -349,7 +430,8 @@ s.close()
 
     # --- caddr zero-initialisation ---
     echo "=== $LABEL: caddr zero-initialisation ==="
-    local BACKEND8_OUT=/tmp/udpr_test_${B}_backend8.txt
+    local BACKEND8_OUT
+    BACKEND8_OUT=$(make_tmpfile)
     > "$BACKEND8_OUT"
     nc -u -l $P20 > "$BACKEND8_OUT" &
     PIDS+=($!)
@@ -365,7 +447,8 @@ s.close()
 
     # --- inet_ntop endpoint address formatting ---
     echo "=== $LABEL: inet_ntop endpoint address formatting ==="
-    local INETNTOP_OUT=/tmp/udpr_test_${B}_inetntop.txt
+    local INETNTOP_OUT
+    INETNTOP_OUT=$(make_tmpfile)
     "$BIN" --listen-port $P21 --connect-address 127.0.0.1 --connect-port $P22 \
         --debug 2>"$INETNTOP_OUT" &
     local INETNTOP_PID=$!
@@ -380,7 +463,8 @@ s.close()
 
     # --- time_t stats time deltas ---
     echo "=== $LABEL: time_t stats time deltas ==="
-    local TIMEDELTA_OUT=/tmp/udpr_test_${B}_timedelta.txt
+    local TIMEDELTA_OUT
+    TIMEDELTA_OUT=$(make_tmpfile)
     "$BIN" --listen-port $P23 --connect-address 127.0.0.1 --connect-port $P24 \
         --stats --verbose 2>"$TIMEDELTA_OUT" &
     local TIMEDELTA_PID=$!
@@ -419,7 +503,8 @@ s.close()
             && pass "$LABEL: IPv6: invalid address string rejected" \
             || fail "$LABEL: IPv6: invalid address string rejected"
 
-        local BACKEND11_OUT=/tmp/udpr_test_${B}_backend11.txt
+        local BACKEND11_OUT
+        BACKEND11_OUT=$(make_tmpfile)
         > "$BACKEND11_OUT"
         python3 -c "
 import socket, sys, select
@@ -448,7 +533,8 @@ s.close()
             && pass "$LABEL: IPv6: packet forwarded via ::1 connect address" \
             || fail "$LABEL: IPv6: packet forwarded via ::1 connect address"
 
-        local BACKEND12_OUT=/tmp/udpr_test_${B}_backend12.txt
+        local BACKEND12_OUT
+        BACKEND12_OUT=$(make_tmpfile)
         > "$BACKEND12_OUT"
         python3 -c "
 import socket, sys, select

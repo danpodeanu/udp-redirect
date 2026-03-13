@@ -958,7 +958,7 @@ fn main() {
                 }
             }
 
-            if recv_ret > 0 {
+            if recv_ret >= 0 {
                 st.count_listen_packet_receive += 1;
                 st.count_listen_byte_receive += recv_ret as u64;
 
@@ -1052,7 +1052,7 @@ fn main() {
                 }
             }
 
-            if recv_ret > 0 {
+            if recv_ret >= 0 {
                 st.count_connect_packet_receive += 1;
                 st.count_connect_byte_receive += recv_ret as u64;
 
