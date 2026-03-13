@@ -1,7 +1,7 @@
 /**
  * @file udp-redirect.c
  * @author Dan Podeanu <pdan@esync.org>
- * @version 2.0.0
+ * @version 2.1.0
  *
  * @section LICENSE
  *
@@ -49,7 +49,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "2.0.0"
+#define UDP_REDIRECT_VERSION    "2.1.0"
 
 /**
  * The delay in seconds between displaying statistics
