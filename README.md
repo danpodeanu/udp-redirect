@@ -17,6 +17,10 @@ Single file source code for convenience. Offers both C and Rust versions.
 
 Supports enforcing the packet source for all received packets. This only provides modest security improvements as generating UDP packets is trivial.
 
+# Documentation
+
+Doxygen generated documentation: [https://danpodeanu.github.io/udp-redirect/](https://danpodeanu.github.io/udp-redirect/)
+
 ## Compile
 
 ```# make```
@@ -63,10 +67,6 @@ listen:send:packets: 98.3K (537.1 /s), listen:send:bytes: 122.9M (671.4K/s)
 connect:receive:packets: 98.3K (537.1 /s), connect:receive:bytes: 122.9M (671.4K/s)
 connect:send:packets: 45.8K (250.0 /s), connect:send:bytes: 13.2M (72.4K/s)
 ```
-
-# Documentation
-
-Doxygen generated documentation: [https://danpodeanu.github.io/udp-redirect/](https://danpodeanu.github.io/udp-redirect/)
 
 # Command Line Arguments
 
