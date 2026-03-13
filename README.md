@@ -3,7 +3,7 @@ A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6. Test
 
 Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
 
-Single file source code for convenience.
+Single file source code for convenience. Offers both C and Rust versions.
 
 ![C CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
 ![Rust CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/rust.yml/badge.svg)
