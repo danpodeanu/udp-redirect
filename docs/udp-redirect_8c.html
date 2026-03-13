@@ -164,7 +164,7 @@ Classes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-define-members" class="groupheader"><a id="define-members" name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:ada596d113080b14fcf0680f118baf602" id="r_ada596d113080b14fcf0680f118baf602"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#ada596d113080b14fcf0680f118baf602">UDP_REDIRECT_VERSION</a>&#160;&#160;&#160;&quot;2.0.0&quot;</td></tr>
+<tr class="memitem:ada596d113080b14fcf0680f118baf602" id="r_ada596d113080b14fcf0680f118baf602"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#ada596d113080b14fcf0680f118baf602">UDP_REDIRECT_VERSION</a>&#160;&#160;&#160;&quot;2.1.0&quot;</td></tr>
 <tr class="memitem:aa1a29c97612ba647f485fae49439e74f" id="r_aa1a29c97612ba647f485fae49439e74f"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#aa1a29c97612ba647f485fae49439e74f">STATISTICS_DELAY_SECONDS</a>&#160;&#160;&#160;60</td></tr>
 <tr class="memitem:a4979fa449090ea6181c2f0a91fe512e7" id="r_a4979fa449090ea6181c2f0a91fe512e7"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#a4979fa449090ea6181c2f0a91fe512e7">NETWORK_BUFFER_SIZE</a>&#160;&#160;&#160;65535</td></tr>
 <tr class="memitem:acf2e4414e0bf0d331a111e70f9317434" id="r_acf2e4414e0bf0d331a111e70f9317434"><td class="memItemLeft">#define&#160;</td><td class="memItemRight"><a class="el" href="#acf2e4414e0bf0d331a111e70f9317434">EOK</a>&#160;&#160;&#160;0</td></tr>
@@ -215,13 +215,21 @@ Variables</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><dl class="section author"><dt>Author</dt><dd>Dan Podeanu <a href="#" onclick="location.href='mai'+'lto:'+'pda'+'n@'+'esy'+'nc'+'.or'+'g'; return false;">pdan@<span class="obfuscator">.nosp@m.</span>esyn<span class="obfuscator">.nosp@m.</span>c.org</a> </dd></dl>
-<dl class="section version"><dt>Version</dt><dd>1.0.0</dd></dl>
+<dl class="section version"><dt>Version</dt><dd>2.1.0</dd></dl>
 <h1 class="doxsection"><a class="anchor" id="LICENSE"></a>
 LICENSE</h1>
 <p>This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.</p>
 <h1 class="doxsection"><a class="anchor" id="DESCRIPTION"></a>
 DESCRIPTION</h1>
-<p>A simple and high performance UDP redirector. </p>
+<p>A single-file, high-performance UDP packet redirector supporting IPv4 and IPv6. Useful when layer-level redirection (e.g., firewall rules) is impractical — common use cases include Wireguard VPN, DNS, and game servers.</p>
+<p>Design overview:</p><ul>
+<li>Two non-blocking UDP sockets: a <em>listen</em> socket (faces the local client) and a <em>send</em> socket (faces the remote endpoint).</li>
+<li>A poll(2)-based main loop with a 1-second timeout drives all I/O; no threads or dynamic allocation occur inside the loop.</li>
+<li>Packets arriving on the listen socket are forwarded to the connect endpoint; replies arriving on the send socket are forwarded back to the most-recently-seen listen-side source.</li>
+<li>Optional strict-mode flags limit which sources are accepted on each side.</li>
+<li>Optional 60-second windowed statistics are printed to stderr.</li>
+</ul>
+<p>Targets: Linux x86-64 (SO_BINDTODEVICE) and macOS/Darwin arm64 (IP_BOUND_IF). </p>
 </div><a name="doc-define-members" id="doc-define-members"></a><h2 id="header-doc-define-members" class="groupheader">Macro Definition Documentation</h2>
 <a id="a4ef8f5794d4be4b93421dc286d49bdc4" name="a4ef8f5794d4be4b93421dc286d49bdc4"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a4ef8f5794d4be4b93421dc286d49bdc4">&#9670;&#160;</a></span>DEBUG</h2>
@@ -297,7 +305,7 @@ DESCRIPTION</h1>
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">((Y) &gt;= 0 &amp;&amp; (Y) &lt; <a class="code hl_define" href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a> &amp;&amp; (X)[(Y)] == 1)</div>
-<div class="ttc" id="audp-redirect_8c_html_a9998f145d5911cecdac6aa347ad08559"><div class="ttname"><a href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a></div><div class="ttdeci">#define MAX_ERRNO</div><div class="ttdef"><b>Definition</b> udp-redirect.c:57</div></div>
+<div class="ttc" id="audp-redirect_8c_html_a9998f145d5911cecdac6aa347ad08559"><div class="ttname"><a href="#a9998f145d5911cecdac6aa347ad08559">MAX_ERRNO</a></div><div class="ttdeci">#define MAX_ERRNO</div><div class="ttdef"><b>Definition</b> udp-redirect.c:72</div></div>
 </div><!-- fragment --><p>Check if errno is in declared set </p>
 
 </div>
@@ -374,8 +382,8 @@ DESCRIPTION</h1>
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line"><a class="code hl_function" href="#a4c46a5b2b31514bfefb1b3102c0b6358">int_to_human_value</a>((X)), <a class="code hl_function" href="#a221a9f57d1507473ccaf7c3d11e732d8">int_to_human_char</a>((X))</div>
-<div class="ttc" id="audp-redirect_8c_html_a221a9f57d1507473ccaf7c3d11e732d8"><div class="ttname"><a href="#a221a9f57d1507473ccaf7c3d11e732d8">int_to_human_char</a></div><div class="ttdeci">char int_to_human_char(double value)</div><div class="ttdef"><b>Definition</b> udp-redirect.c:1096</div></div>
-<div class="ttc" id="audp-redirect_8c_html_a4c46a5b2b31514bfefb1b3102c0b6358"><div class="ttname"><a href="#a4c46a5b2b31514bfefb1b3102c0b6358">int_to_human_value</a></div><div class="ttdeci">double int_to_human_value(double value)</div><div class="ttdef"><b>Definition</b> udp-redirect.c:1086</div></div>
+<div class="ttc" id="audp-redirect_8c_html_a221a9f57d1507473ccaf7c3d11e732d8"><div class="ttname"><a href="#a221a9f57d1507473ccaf7c3d11e732d8">int_to_human_char</a></div><div class="ttdeci">char int_to_human_char(double value)</div><div class="ttdef"><b>Definition</b> udp-redirect.c:1125</div></div>
+<div class="ttc" id="audp-redirect_8c_html_a4c46a5b2b31514bfefb1b3102c0b6358"><div class="ttname"><a href="#a4c46a5b2b31514bfefb1b3102c0b6358">int_to_human_value</a></div><div class="ttdeci">double int_to_human_value(double value)</div><div class="ttdef"><b>Definition</b> udp-redirect.c:1115</div></div>
 </div><!-- fragment --><p>Hardcoded invocations of int to human readable, compatible with HUMAN_READABLE_FORMAT in printf </p>
 
 </div>
@@ -489,8 +497,8 @@ DESCRIPTION</h1>
 <div class="line">    } \</div>
 <div class="line">    (dest) = (<span class="keywordtype">int</span>)_val; \</div>
 <div class="line">} <span class="keywordflow">while</span> (0)</div>
-<div class="ttc" id="audp-redirect_8c_html_a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c"><div class="ttname"><a href="#a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c">DEBUG_LEVEL_ERROR</a></div><div class="ttdeci">@ DEBUG_LEVEL_ERROR</div><div class="ttdoc">Error messages.</div><div class="ttdef"><b>Definition</b> udp-redirect.c:78</div></div>
-<div class="ttc" id="audp-redirect_8c_html_acf2e4414e0bf0d331a111e70f9317434"><div class="ttname"><a href="#acf2e4414e0bf0d331a111e70f9317434">EOK</a></div><div class="ttdeci">#define EOK</div><div class="ttdoc">Readability: errno value for OK.</div><div class="ttdef"><b>Definition</b> udp-redirect.c:52</div></div>
+<div class="ttc" id="audp-redirect_8c_html_a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c"><div class="ttname"><a href="#a1abe4a502b5a81ac9d4fc4ca3548b997a2458bd2178cc99bc6737bc528be5f61c">DEBUG_LEVEL_ERROR</a></div><div class="ttdeci">@ DEBUG_LEVEL_ERROR</div><div class="ttdoc">Error messages.</div><div class="ttdef"><b>Definition</b> udp-redirect.c:93</div></div>
+<div class="ttc" id="audp-redirect_8c_html_acf2e4414e0bf0d331a111e70f9317434"><div class="ttname"><a href="#acf2e4414e0bf0d331a111e70f9317434">EOK</a></div><div class="ttdeci">#define EOK</div><div class="ttdoc">Readability: errno value for OK.</div><div class="ttdef"><b>Definition</b> udp-redirect.c:67</div></div>
 </div><!-- fragment --><p>Parse a port number from a string (optarg). Sets <code class="param">dest</code> to the parsed value, or prints <code class="param">label</code> and exits on error. Validates that the string is a pure decimal integer in [0, 65535]. </p>
 
 </div>
@@ -517,7 +525,7 @@ DESCRIPTION</h1>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define UDP_REDIRECT_VERSION&#160;&#160;&#160;&quot;2.0.0&quot;</td>
+          <td class="memname">#define UDP_REDIRECT_VERSION&#160;&#160;&#160;&quot;2.1.0&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -1074,7 +1082,7 @@ Here is the caller graph for this function:</div>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A newly allocated buffer containing the IP. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A newly heap-allocated NUL-terminated string containing the resolved IP address (IPv4 dotted-quad or IPv6 colon-separated). The caller owns the buffer and must free() it when done. On failure the function prints a diagnostic and calls exit(EXIT_FAILURE). </dd></dl>
 <div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
