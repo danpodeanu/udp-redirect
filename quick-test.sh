@@ -268,11 +268,33 @@ s.close()
     fi
 
     # --- Hostname resolution ---
+    # Use a dual-stack python3 listener (IPV6_V6ONLY=0) so the test passes
+    # regardless of whether the OS resolves "localhost" to 127.0.0.1 or ::1
+    # (macOS getaddrinfo returns ::1 first; nc -u -l binds IPv4 only → mismatch).
     echo "=== $LABEL: hostname resolution ==="
     local BACKEND5_OUT=/tmp/udpr_test_${B}_backend5.txt
     > "$BACKEND5_OUT"
-    nc -u -l $P12 > "$BACKEND5_OUT" &
-    PIDS+=($!)
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c "
+import socket, sys, select
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+try:
+    s.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+except OSError:
+    pass
+s.bind(('::', $P12))
+r, _, _ = select.select([s], [], [], 2.0)
+if r:
+    data, _ = s.recvfrom(4096)
+    sys.stdout.buffer.write(data); sys.stdout.flush()
+s.close()
+" > "$BACKEND5_OUT" &
+        PIDS+=($!)
+    else
+        nc -u -l $P12 > "$BACKEND5_OUT" &
+        PIDS+=($!)
+    fi
     sleep 0.2
     "$BIN" --listen-port $P11 --connect-host localhost --connect-port $P12 \
         --debug 2>/dev/null &
