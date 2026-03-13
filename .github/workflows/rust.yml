@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Rust CI
 permissions:
   contents: read
   pull-requests: write
@@ -16,7 +16,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: make
-      run: make
-    - name: unit tests
-      run: make test
+    - name: cargo build
+      run: cargo build --release
+      working-directory: udp-redirect-rs
+    - name: cargo test
+      run: cargo test
+      working-directory: udp-redirect-rs

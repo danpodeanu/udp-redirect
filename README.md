@@ -5,7 +5,8 @@ Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing i
 
 Single file source code for convenience.
 
-![GitHub CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
+![C CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg)
+![Rust CI](https://github.com/danpodeanu/udp-redirect/actions/workflows/rust.yml/badge.svg)
 [![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 
 **Community contributions are welcome.**
