@@ -6,6 +6,7 @@ use std::ffi::CString;
 use std::mem;
 use std::process;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::ptr::NonNull;
 
 // ──────────────────────────────────────────────────────────────────────────
 // libc functions/constants not always re-exported by the libc crate
@@ -495,7 +496,9 @@ fn resolve_host(debug_level: i32, host: &str) -> String {
         debug!(debug_level, DEBUG_LEVEL_ERROR, "Could not resolve host {}: getaddrinfo returned no results", host);
         process::exit(1);
     }
-    let ai = unsafe { &*res };
+    // At this point, `res` must be non-null. Wrap it in `NonNull` to make this explicit.
+    let res_nn = NonNull::new(res).expect("getaddrinfo returned success but res is null");
+    let ai: &libc::addrinfo = unsafe { res_nn.as_ref() };
     let mut buf = vec![0u8; INET6_ADDRSTRLEN as usize];
 
     let (family, addr_ptr) = if ai.ai_family == libc::AF_INET6 {
