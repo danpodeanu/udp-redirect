@@ -714,7 +714,10 @@ fn statistics_display(debug_level: i32, st: &mut Statistics, now: i64) {
 // ──────────────────────────────────────────────────────────────────────────
 
 fn errno() -> libc::c_int {
+    #[cfg(target_os = "linux")]
     unsafe { *libc::__errno_location() }
+    #[cfg(target_os = "macos")]
+    unsafe { *libc::__error() }
 }
 
 fn errno_is_ignored(ignore_set: &[bool], err: libc::c_int) -> bool {
