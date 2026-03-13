@@ -2,7 +2,7 @@ class UdpRedirect < Formula
   desc "Simple yet flexible and very fast UDP redirector"
   homepage "https://github.com/danpodeanu/udp-redirect"
   url "https://github.com/danpodeanu/udp-redirect/archive/refs/tags/v2.1.0.tar.gz"
-  sha256 ""
+  sha256 "e2365d6f471984c1e849afc7c6bb27631a353b1325b9411890e01df6bb3a277a"
   license "GPL-2.0-only"
 
   head do
