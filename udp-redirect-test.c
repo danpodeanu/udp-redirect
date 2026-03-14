@@ -17,6 +17,7 @@
 #include <math.h>   /* fabs */
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h> /* close */
 
 /* ---- Minimal test framework -------------------------------------------- */
 
@@ -419,6 +420,208 @@ static void test_statistics_display(void) {
     stderr = old_stderr;
 }
 
+static void test_socket_setup(void) {
+    struct sockaddr_storage name;
+    int s;
+
+    printf("\n=== socket_setup ===\n");
+
+    /* IPv4 socket with explicit address */
+    s = socket_setup(0, "Test", "127.0.0.1", 0, NULL, AF_INET, &name);
+    check(s >= 0, "socket_setup: IPv4 socket created");
+    if (s >= 0) {
+        check(name.ss_family == AF_INET,
+              "socket_setup: IPv4 bound name has AF_INET");
+        close(s);
+    }
+
+    /* IPv4 ANY socket (xaddr NULL, xfamily AF_INET) */
+    s = socket_setup(0, "Test", NULL, 0, NULL, AF_INET, &name);
+    check(s >= 0, "socket_setup: IPv4 ANY socket created");
+    if (s >= 0) {
+        check(name.ss_family == AF_INET,
+              "socket_setup: IPv4 ANY bound name has AF_INET");
+        close(s);
+    }
+
+    /* IPv6 availability check — skip IPv6 tests if not available */
+    int ipv6_ok;
+    {
+        int probe = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+        ipv6_ok = (probe >= 0);
+        if (probe >= 0) close(probe);
+    }
+
+    if (!ipv6_ok) {
+        printf("SKIP: IPv6 not available, skipping IPv6 socket_setup tests\n");
+        return;
+    }
+
+    /* IPv6 socket with explicit address */
+    s = socket_setup(0, "Test", "::1", 0, NULL, AF_INET6, &name);
+    check(s >= 0, "socket_setup: IPv6 socket created");
+    if (s >= 0) {
+        check(name.ss_family == AF_INET6,
+              "socket_setup: IPv6 bound name has AF_INET6");
+        close(s);
+    }
+
+    /* IPv6 ANY socket (xaddr NULL, xfamily AF_INET6) */
+    s = socket_setup(0, "Test", NULL, 0, NULL, AF_INET6, &name);
+    check(s >= 0, "socket_setup: IPv6 ANY socket created");
+    if (s >= 0) {
+        check(name.ss_family == AF_INET6,
+              "socket_setup: IPv6 ANY bound name has AF_INET6");
+        close(s);
+    }
+
+    /* Cross-family pair: lsock IPv4, ssock IPv6 */
+    struct sockaddr_storage lname, sname;
+    int lsock = socket_setup(0, "Listen", "127.0.0.1", 0, NULL, AF_INET,  &lname);
+    int ssock = socket_setup(0, "Send",   NULL,        0, NULL, AF_INET6, &sname);
+    check(lsock >= 0, "socket_setup: cross-family lsock (IPv4) created");
+    check(ssock >= 0, "socket_setup: cross-family ssock (IPv6) created");
+    if (lsock >= 0) {
+        check(lname.ss_family == AF_INET,
+              "socket_setup: cross-family lsock bound name is AF_INET");
+        close(lsock);
+    }
+    if (ssock >= 0) {
+        check(sname.ss_family == AF_INET6,
+              "socket_setup: cross-family ssock bound name is AF_INET6");
+        close(ssock);
+    }
+}
+
+/* Helper: set a 1-second receive timeout on a socket. */
+static void set_rcvtimeo(int fd) {
+    struct timeval tv = {1, 0};
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+}
+
+static void test_cross_family_forwarding(void) {
+    printf("\n=== cross-family forwarding (IPv4 client -> IPv6 server) ===\n");
+
+    /* IPv6 availability check */
+    {
+        int probe = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+        if (probe < 0) {
+            printf("SKIP: IPv6 not available\n");
+            return;
+        }
+        close(probe);
+    }
+
+    /* ── server: blocking IPv6 UDP socket on ::1 ────────────────── */
+    int server = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    check(server >= 0, "cross-family: server socket created");
+    if (server < 0) return;
+
+    struct sockaddr_in6 server_bind;
+    memset(&server_bind, 0, sizeof(server_bind));
+    server_bind.sin6_family = AF_INET6;
+    server_bind.sin6_addr   = in6addr_loopback;
+    server_bind.sin6_port   = 0;
+    bind(server, (struct sockaddr *)&server_bind, sizeof(server_bind));
+    set_rcvtimeo(server);
+
+    struct sockaddr_storage server_name;
+    socklen_t sn_len = sizeof(server_name);
+    getsockname(server, (struct sockaddr *)&server_name, &sn_len);
+    int server_port = ntohs(((struct sockaddr_in6 *)&server_name)->sin6_port);
+
+    /* ── lsock: blocking IPv4 UDP socket on 127.0.0.1 ───────────── */
+    int lsock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    check(lsock >= 0, "cross-family: lsock (IPv4) socket created");
+    if (lsock < 0) { close(server); return; }
+
+    struct sockaddr_in lbind;
+    memset(&lbind, 0, sizeof(lbind));
+    lbind.sin_family      = AF_INET;
+    lbind.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    lbind.sin_port        = 0;
+    bind(lsock, (struct sockaddr *)&lbind, sizeof(lbind));
+    set_rcvtimeo(lsock);
+
+    struct sockaddr_storage lsock_name;
+    socklen_t ln_len = sizeof(lsock_name);
+    getsockname(lsock, (struct sockaddr *)&lsock_name, &ln_len);
+    int lsock_port = ntohs(((struct sockaddr_in *)&lsock_name)->sin_port);
+
+    /* ── ssock: blocking IPv6 UDP socket on :: ───────────────────── */
+    int ssock = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    check(ssock >= 0, "cross-family: ssock (IPv6) socket created");
+    if (ssock < 0) { close(server); close(lsock); return; }
+
+    struct sockaddr_in6 sbind;
+    memset(&sbind, 0, sizeof(sbind));
+    sbind.sin6_family = AF_INET6;
+    sbind.sin6_addr   = in6addr_any;
+    sbind.sin6_port   = 0;
+    bind(ssock, (struct sockaddr *)&sbind, sizeof(sbind));
+    set_rcvtimeo(ssock);
+
+    /* ── client: blocking IPv4 UDP socket ────────────────────────── */
+    int client = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    check(client >= 0, "cross-family: client (IPv4) socket created");
+    if (client < 0) { close(server); close(lsock); close(ssock); return; }
+    set_rcvtimeo(client);
+
+    /* connect address for ssock -> server */
+    struct sockaddr_storage caddr;
+    parse_addr("::1", server_port, &caddr);
+
+    /* ── forward path: client -> lsock -> ssock -> server ─────────── */
+    struct sockaddr_in dst;
+    memset(&dst, 0, sizeof(dst));
+    dst.sin_family      = AF_INET;
+    dst.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    dst.sin_port        = htons(lsock_port);
+    sendto(client, "ping", 4, 0, (struct sockaddr *)&dst, sizeof(dst));
+
+    /* lsock receives from IPv4 client */
+    char buf[64];
+    struct sockaddr_storage endpoint;
+    socklen_t ep_len = sizeof(endpoint);
+    ssize_t n = recvfrom(lsock, buf, sizeof(buf), 0,
+                         (struct sockaddr *)&endpoint, &ep_len);
+    check(n == 4 && memcmp(buf, "ping", 4) == 0,
+          "cross-family: lsock (IPv4) received 'ping' from client");
+    check(endpoint.ss_family == AF_INET,
+          "cross-family: client endpoint recorded as AF_INET");
+
+    /* ssock forwards to IPv6 server */
+    ssize_t sent = sendto(ssock, buf, n, 0,
+                          (struct sockaddr *)&caddr, addr_len(&caddr));
+    check(sent == n, "cross-family: ssock forwarded packet to IPv6 server");
+
+    /* server receives on IPv6 */
+    struct sockaddr_storage from;
+    socklen_t from_len = sizeof(from);
+    n = recvfrom(server, buf, sizeof(buf), 0,
+                 (struct sockaddr *)&from, &from_len);
+    check(n == 4 && memcmp(buf, "ping", 4) == 0,
+          "cross-family: IPv6 server received 'ping'");
+
+    /* ── return path: server -> ssock -> lsock -> client ──────────── */
+    sendto(server, "pong", 4, 0, (struct sockaddr *)&from, from_len);
+
+    n = recvfrom(ssock, buf, sizeof(buf), 0, NULL, NULL);
+    check(n == 4 && memcmp(buf, "pong", 4) == 0,
+          "cross-family: ssock received 'pong' reply from server");
+
+    sendto(lsock, buf, n, 0, (struct sockaddr *)&endpoint, ep_len);
+
+    n = recvfrom(client, buf, sizeof(buf), 0, NULL, NULL);
+    check(n == 4 && memcmp(buf, "pong", 4) == 0,
+          "cross-family: IPv4 client received 'pong' reply");
+
+    close(server);
+    close(lsock);
+    close(ssock);
+    close(client);
+}
+
 /* ---- Entry point --------------------------------------------------------- */
 
 int main(void) {
@@ -432,6 +635,8 @@ int main(void) {
     test_settings_initialize();
     test_statistics_initialize();
     test_statistics_display();
+    test_socket_setup();
+    test_cross_family_forwarding();
 
     printf("\nResults: %d passed, %d failed\n", g_pass, g_fail);
     return g_fail > 0 ? 1 : 0;

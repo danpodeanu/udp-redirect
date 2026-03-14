@@ -1,5 +1,5 @@
 # udp-redirect
-A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6. Tested on Linux x64 and MacOS / Darwin arm64.
+A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6, including cross-family forwarding (IPv4 <-> IPv6). Tested on Linux x64 and MacOS / Darwin arm64.
 
 Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.
 
@@ -46,6 +46,22 @@ or
         --connect-address-strict \
     --send-interface utun5 \
     --listen-sender-address 192.168.1.1 --listen-sender-port 51820
+```
+
+Cross-family forwarding is supported: the listen and connect sockets use independent address families, determined by `--listen-address` and `--connect-address` respectively.
+
+Receive IPv4 packets and forward to an IPv6 backend:
+```
+./udp-redirect \
+    --listen-address 0.0.0.0 --listen-port 51821 \
+    --connect-address ::1 --connect-port 51822
+```
+
+Receive IPv6 packets and forward to an IPv4 backend:
+```
+./udp-redirect \
+    --listen-address ::1 --listen-port 51821 \
+    --connect-address 127.0.0.1 --connect-port 51822
 ```
 
 ```mermaid

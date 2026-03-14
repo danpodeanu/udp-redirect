@@ -140,6 +140,8 @@ run_tests() {
     local P29=$((19929+B)) P30=$((19930+B))  # IPv6 forwarding
     local P31=$((19931+B)) P32=$((19932+B))  # IPv6 --listen-address
     local P33=$((19933+B)) P34=$((19934+B))  # zero-length datagrams
+    local P35=$((19935+B)) P36=$((19936+B))  # cross-family IPv4 listen -> IPv6 connect
+    local P37=$((19937+B)) P38=$((19938+B))  # cross-family IPv6 listen -> IPv4 connect
 
     echo ""
     echo "===== $LABEL ====="
@@ -563,6 +565,73 @@ s.close()
         grep -q "ipv6-listen-addr" "$BACKEND12_OUT" \
             && pass "$LABEL: IPv6: packet forwarded with explicit --listen-address ::1" \
             || fail "$LABEL: IPv6: packet forwarded with explicit --listen-address ::1"
+
+        # --- Cross-family: IPv4 listen -> IPv6 connect ---
+        echo "=== $LABEL: cross-family: IPv4 listen -> IPv6 connect ==="
+        local BACKEND_CF1_OUT
+        BACKEND_CF1_OUT=$(make_tmpfile)
+        > "$BACKEND_CF1_OUT"
+        python3 - <<PY > "$BACKEND_CF1_OUT" &
+import socket, sys, select
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('::1', $P36))
+r, _, _ = select.select([s], [], [], 3.0)
+if r:
+    data, _ = s.recvfrom(65535)
+    sys.stdout.buffer.write(data); sys.stdout.flush()
+s.close()
+PY
+        PIDS+=($!)
+        sleep 0.2
+        "$BIN" --listen-address 0.0.0.0 --listen-port $P35 \
+            --connect-address ::1 --connect-port $P36 2>/dev/null &
+        PIDS+=($!)
+        sleep 0.2
+        python3 -c "
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(b'cf-ipv4-to-ipv6', ('127.0.0.1', $P35))
+s.close()
+"
+        sleep 0.5
+        grep -q "cf-ipv4-to-ipv6" "$BACKEND_CF1_OUT" \
+            && pass "$LABEL: cross-family: IPv4 client packet forwarded to IPv6 server" \
+            || fail "$LABEL: cross-family: IPv4 client packet forwarded to IPv6 server"
+
+        # --- Cross-family: IPv6 listen -> IPv4 connect ---
+        echo "=== $LABEL: cross-family: IPv6 listen -> IPv4 connect ==="
+        local BACKEND_CF2_OUT
+        BACKEND_CF2_OUT=$(make_tmpfile)
+        > "$BACKEND_CF2_OUT"
+        python3 - <<PY > "$BACKEND_CF2_OUT" &
+import socket, sys, select
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+s.bind(('127.0.0.1', $P38))
+r, _, _ = select.select([s], [], [], 3.0)
+if r:
+    data, _ = s.recvfrom(65535)
+    sys.stdout.buffer.write(data); sys.stdout.flush()
+s.close()
+PY
+        PIDS+=($!)
+        sleep 0.2
+        "$BIN" --listen-address ::1 --listen-port $P37 \
+            --connect-address 127.0.0.1 --connect-port $P38 2>/dev/null &
+        PIDS+=($!)
+        sleep 0.2
+        python3 -c "
+import socket
+s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+s.sendto(b'cf-ipv6-to-ipv4', ('::1', $P37))
+s.close()
+"
+        sleep 0.5
+        grep -q "cf-ipv6-to-ipv4" "$BACKEND_CF2_OUT" \
+            && pass "$LABEL: cross-family: IPv6 client packet forwarded to IPv4 server" \
+            || fail "$LABEL: cross-family: IPv6 client packet forwarded to IPv4 server"
+
     else
         echo "=== $LABEL: IPv6 support (SKIPPED: IPv6 loopback not available) ==="
     fi

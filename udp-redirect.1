@@ -63,6 +63,12 @@ recently seen source. This makes the process an unauthenticated UDP relay. If th
 port is reachable by untrusted networks, use --listen-address-strict and/or
 --listen-sender-address with --listen-sender-port, and consider firewalling the listen port
 to expected sources only.
+.PP
+Cross-family forwarding is supported: the listen and connect sockets operate on independent
+address families. An IPv4 listen address (e.g., 0.0.0.0) may be paired with an IPv6 connect
+address (e.g., ::1), and vice versa. The listen socket family is determined by
+\fB--listen-address\fP; the connect socket family is determined by \fB--connect-address\fP
+or \fB--connect-host\fP.
 .\" --------------------------------------------------------------------------
 .\" Usage
 .\" --------------------------------------------------------------------------
@@ -196,6 +202,14 @@ stats and debug information.
 udp-redirect --stats --debug --listen-address 192.168.1.32 --listen-port 51821 --listen-interface en0
 --listen-address-strict --connect-host example.endpoint.net --connect-port 51822 --connect-address-strict
 --send-interface utun5 --listen-sender-address 192.168.1.1 --listen-sender-port 51820
+.PP
+Receive IPv4 packets on port 51821 and forward to an IPv6 backend at ::1 port 51822 (cross-family).
+.PP
+udp-redirect --listen-address 0.0.0.0 --listen-port 51821 --connect-address ::1 --connect-port 51822
+.PP
+Receive IPv6 packets on port 51821 and forward to an IPv4 backend at 127.0.0.1 port 51822 (cross-family).
+.PP
+udp-redirect --listen-address ::1 --listen-port 51821 --connect-address 127.0.0.1 --connect-port 51822
 .
 .\" --------------------------------------------------------------------------
 .\" Bugs, authors, standard disclaimer

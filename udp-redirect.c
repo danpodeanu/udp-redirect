@@ -1,7 +1,7 @@
 /**
  * @file udp-redirect.c
  * @author Dan Podeanu <pdan@esync.org>
- * @version 2.1.1
+ * @version 2.2.0
  *
  * @section LICENSE
  *
@@ -49,7 +49,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "2.1.1"
+#define UDP_REDIRECT_VERSION    "2.2.0"
 
 /**
  * The delay in seconds between displaying statistics
@@ -469,7 +469,41 @@ int main(int argc, char *argv[]) {
         s.caddr = NULL;
     }
 
-    lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, (int)caddr.ss_family, &lsock_name); /* Set up listening socket */
+    /* Determine listen socket family independently from the connect family.
+     * When --listen-address is given its family drives lsock, enabling
+     * cross-family forwarding (e.g. IPv4 listen with IPv6 connect).
+     * When no listen address is given, fall back to the connect family. */
+    int lsock_family = (int)caddr.ss_family;
+    if (s.laddr != NULL) {
+        struct sockaddr_storage tmp;
+        memset(&tmp, 0, sizeof(tmp));
+        int f = parse_addr(s.laddr, 0, &tmp);
+        if (f != -1)
+            lsock_family = f;
+        /* parse failure is caught and reported inside socket_setup */
+    }
+
+    if (lsock_family != (int)caddr.ss_family) {
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Cross-family forwarding: listen %s, connect/send %s",
+            (lsock_family == AF_INET6) ? "IPv6" : "IPv4",
+            ((int)caddr.ss_family == AF_INET6) ? "IPv6" : "IPv4");
+    }
+
+    /* Validate: --send-address family must match --connect-address family */
+    if (s.saddr != NULL) {
+        struct sockaddr_storage tmp;
+        memset(&tmp, 0, sizeof(tmp));
+        int f = parse_addr(s.saddr, 0, &tmp);
+        if (f != -1 && f != (int)caddr.ss_family) {
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR,
+                "Send address family (%s) does not match connect address family (%s)",
+                (f == AF_INET6) ? "IPv6" : "IPv4",
+                ((int)caddr.ss_family == AF_INET6) ? "IPv6" : "IPv4");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, lsock_family, &lsock_name); /* Set up listening socket */
     ssock = socket_setup(debug_level, "Send", s.saddr, s.sport, s.sif, (int)caddr.ss_family, &ssock_name); /* Set up send socket */
 
     memset(&endpoint, 0, sizeof(endpoint)); /* No packet received, no endpoint */

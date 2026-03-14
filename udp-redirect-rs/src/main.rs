@@ -23,7 +23,7 @@ extern "C" {
 // Constants
 // ──────────────────────────────────────────────────────────────────────────
 
-const VERSION: &str = "2.1.1";
+const VERSION: &str = "2.2.0";
 const STATISTICS_DELAY_SECONDS: i64 = 60;
 const NETWORK_BUFFER_SIZE: usize = 65535;
 
@@ -844,7 +844,7 @@ fn main() {
         if cli.stats { "ENABLED" } else { "DISABLED" });
     debug!(debug_level, DEBUG_LEVEL_INFO, "---- START ----");
 
-    // Parse connect address to determine address family for both sockets
+    // Parse connect address to determine the send/connect socket family
     let caddr = match parse_addr(&caddr_str, connect_port) {
         Some((sa, _)) => sa,
         None => {
@@ -852,7 +852,40 @@ fn main() {
             process::exit(1);
         }
     };
-    let xfamily = caddr.ss_family as libc::c_int;
+    let connect_family = caddr.ss_family as libc::c_int;
+
+    // Determine listen socket family independently from the connect family.
+    // When --listen-address is given its family drives lsock, enabling
+    // cross-family forwarding (e.g. IPv4 listen with IPv6 connect).
+    // When no listen address is given, fall back to the connect family.
+    let lsock_family = if let Some(ref laddr) = cli.listen_address {
+        match parse_addr(laddr, 0) {
+            Some((_, fam)) => fam,
+            None => connect_family, // parse failure reported inside socket_setup
+        }
+    } else {
+        connect_family
+    };
+
+    if lsock_family != connect_family {
+        debug!(debug_level, DEBUG_LEVEL_INFO,
+            "Cross-family forwarding: listen {}, connect/send {}",
+            if lsock_family == libc::AF_INET6 { "IPv6" } else { "IPv4" },
+            if connect_family == libc::AF_INET6 { "IPv6" } else { "IPv4" });
+    }
+
+    // Validate: --send-address family must match --connect-address family
+    if let Some(ref saddr) = cli.send_address {
+        if let Some((_, f)) = parse_addr(saddr, 0) {
+            if f != connect_family {
+                debug!(debug_level, DEBUG_LEVEL_ERROR,
+                    "Send address family ({}) does not match connect address family ({})",
+                    if f == libc::AF_INET6 { "IPv6" } else { "IPv4" },
+                    if connect_family == libc::AF_INET6 { "IPv6" } else { "IPv4" });
+                process::exit(1);
+            }
+        }
+    }
 
     let (lsock, lsock_name) = socket_setup(
         debug_level,
@@ -860,7 +893,7 @@ fn main() {
         cli.listen_address.as_deref(),
         listen_port,
         cli.listen_interface.as_deref(),
-        xfamily,
+        lsock_family,
     );
 
     let (ssock, ssock_name) = socket_setup(
@@ -869,7 +902,7 @@ fn main() {
         cli.send_address.as_deref(),
         cli.send_port.unwrap_or(0),
         cli.send_interface.as_deref(),
-        xfamily,
+        connect_family,
     );
 
     // previous_endpoint: ss_family == 0 means "no endpoint seen yet"
@@ -1633,5 +1666,160 @@ mod tests {
         let dl = DEBUG_LEVEL_ERROR;
         statistics_display(dl, &mut st, t0);
         assert_eq!(dl, DEBUG_LEVEL_ERROR);
+    }
+
+    // ── cross-family socket creation ─────────────────────────────────────
+
+    /// Verify that an IPv4 socket can be created and bound independently of
+    /// an IPv6 socket (cross-family pair used for IPv4 listen + IPv6 connect).
+    #[test]
+    fn socket_setup_cross_family_pair() {
+        use std::net::UdpSocket;
+
+        // Bind an IPv4 socket on 127.0.0.1
+        let lsock = UdpSocket::bind("127.0.0.1:0")
+            .expect("IPv4 loopback socket should be available");
+        let laddr = lsock.local_addr().unwrap();
+        assert!(laddr.is_ipv4(), "lsock should be IPv4");
+
+        // Check IPv6 availability before proceeding
+        match UdpSocket::bind("[::1]:0") {
+            Err(_) => {
+                // IPv6 not available on this host — pass silently
+                return;
+            }
+            Ok(ssock) => {
+                let saddr = ssock.local_addr().unwrap();
+                assert!(saddr.is_ipv6(), "ssock should be IPv6");
+                // Families are independent
+                assert_ne!(
+                    laddr.is_ipv4(), laddr.is_ipv6(),
+                    "lsock address should be exactly one family"
+                );
+            }
+        }
+    }
+
+    // ── cross-family forwarding ──────────────────────────────────────────
+
+    /// Full round-trip: IPv4 client -> IPv4 lsock -> IPv6 ssock -> IPv6 server
+    ///                  IPv6 server -> IPv6 ssock -> IPv4 lsock -> IPv4 client
+    ///
+    /// This mirrors the forwarding logic in the main loop without requiring
+    /// the binary to be running.
+    #[test]
+    fn cross_family_forwarding_ipv4_client_ipv6_server() {
+        use std::net::UdpSocket;
+        use std::time::Duration;
+
+        // IPv6 availability check
+        let server = match UdpSocket::bind("[::1]:0") {
+            Ok(s) => s,
+            Err(_) => return, // IPv6 not available — skip
+        };
+        server.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let server_addr = server.local_addr().unwrap();
+
+        // lsock: IPv4, listens for clients
+        let lsock = UdpSocket::bind("127.0.0.1:0").unwrap();
+        lsock.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let lsock_addr = lsock.local_addr().unwrap();
+
+        // ssock: IPv6, forwards to server
+        let ssock = UdpSocket::bind("[::1]:0").unwrap();
+        ssock.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let ssock_addr = ssock.local_addr().unwrap();
+
+        // client: IPv4
+        let client = UdpSocket::bind("127.0.0.1:0").unwrap();
+        client.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+
+        // ── forward path ─────────────────────────────────────────────────
+        // client -> lsock
+        client.send_to(b"ping", lsock_addr).unwrap();
+
+        let mut buf = [0u8; 64];
+        let (n, client_endpoint) = lsock.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"ping", "lsock should receive 'ping' from IPv4 client");
+        assert!(client_endpoint.is_ipv4(), "client endpoint should be IPv4");
+
+        // lsock -> ssock -> server
+        ssock.send_to(&buf[..n], server_addr).unwrap();
+
+        let (n, ssock_endpoint) = server.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"ping", "server should receive 'ping'");
+        assert!(ssock_endpoint.is_ipv6(), "ssock endpoint at server should be IPv6");
+        assert_eq!(ssock_endpoint.ip(), ssock_addr.ip(),
+                   "server sees ssock's address as source");
+
+        // ── return path ──────────────────────────────────────────────────
+        // server -> ssock
+        server.send_to(b"pong", ssock_endpoint).unwrap();
+
+        let (n, _) = ssock.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"pong", "ssock should receive 'pong' from server");
+
+        // ssock -> lsock -> client
+        lsock.send_to(&buf[..n], client_endpoint).unwrap();
+
+        let (n, _) = client.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"pong", "IPv4 client should receive 'pong' reply");
+    }
+
+    /// Reverse direction: IPv6 client -> IPv6 lsock -> IPv4 ssock -> IPv4 server
+    #[test]
+    fn cross_family_forwarding_ipv6_client_ipv4_server() {
+        use std::net::UdpSocket;
+        use std::time::Duration;
+
+        // IPv6 availability check
+        let probe = UdpSocket::bind("[::1]:0");
+        if probe.is_err() { return; }
+        drop(probe);
+
+        // server: IPv4
+        let server = UdpSocket::bind("127.0.0.1:0").unwrap();
+        server.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let server_addr = server.local_addr().unwrap();
+
+        // lsock: IPv6
+        let lsock = UdpSocket::bind("[::1]:0").unwrap();
+        lsock.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let lsock_addr = lsock.local_addr().unwrap();
+
+        // ssock: IPv4, forwards to server
+        let ssock = UdpSocket::bind("127.0.0.1:0").unwrap();
+        ssock.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+        let ssock_addr = ssock.local_addr().unwrap();
+
+        // client: IPv6
+        let client = UdpSocket::bind("[::1]:0").unwrap();
+        client.set_read_timeout(Some(Duration::from_secs(1))).unwrap();
+
+        // ── forward path ─────────────────────────────────────────────────
+        client.send_to(b"ping", lsock_addr).unwrap();
+
+        let mut buf = [0u8; 64];
+        let (n, client_endpoint) = lsock.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"ping");
+        assert!(client_endpoint.is_ipv6(), "client endpoint should be IPv6");
+
+        ssock.send_to(&buf[..n], server_addr).unwrap();
+
+        let (n, ssock_endpoint) = server.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"ping");
+        assert!(ssock_endpoint.is_ipv4(), "ssock endpoint at server should be IPv4");
+        assert_eq!(ssock_endpoint.ip(), ssock_addr.ip());
+
+        // ── return path ──────────────────────────────────────────────────
+        server.send_to(b"pong", ssock_endpoint).unwrap();
+
+        let (n, _) = ssock.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"pong");
+
+        lsock.send_to(&buf[..n], client_endpoint).unwrap();
+
+        let (n, _) = client.recv_from(&mut buf).unwrap();
+        assert_eq!(&buf[..n], b"pong", "IPv6 client should receive 'pong' reply");
     }
 }
