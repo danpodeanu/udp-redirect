@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Quick functional tests for udp-redirect (C) and udp-redirect-rs (Rust).
-# Requires: nc (netcat-openbsd), make, gcc, cargo
+# Quick functional tests for udp-redirect.
+# Requires: nc (netcat-openbsd), make, gcc
 # Optional: socat (two-way forwarding test), python3 (source filtering / IPv6 tests)
 
 PASS=0
@@ -44,17 +44,7 @@ make_tmpdir
 echo "=== build C ==="
 make -s && pass "build C" || { echo "FAIL: build C (aborting)"; exit 1; }
 
-# --- Build Rust ---
-echo "=== build Rust ==="
-(cd udp-redirect-rs && cargo build -q 2>&1) \
-    && pass "build Rust" || { echo "FAIL: build Rust (aborting)"; exit 1; }
-
-# --- Rust unit tests ---
-echo "=== Rust unit tests ==="
-(cd udp-redirect-rs && cargo test -q 2>&1) \
-    && pass "Rust unit tests" || fail "Rust unit tests"
-
-# --- int_to_human scaling consistency (C-only; Rust covered by cargo test) ---
+# --- int_to_human scaling consistency ---
 echo "=== int_to_human scaling consistency ==="
 HUMAN_C_FILE=$(mktemp "${TMPDIR}/udpr_test.XXXXXX.c") || exit 1
 TMPFILES+=("$HUMAN_C_FILE")
@@ -114,8 +104,7 @@ fi
 # run_tests BIN PORT_BASE
 #
 # Runs all functional tests against BIN.  All port numbers are offset by
-# PORT_BASE so the C run (base 0, ports 19901-19932) and the Rust run
-# (base 100, ports 20001-20032) never collide.
+# PORT_BASE so test runs with different binaries never collide.
 # ---------------------------------------------------------------------------
 run_tests() {
     local BIN="$1"
@@ -638,17 +627,10 @@ s.close()
 }
 
 # ---------------------------------------------------------------------------
-# Run all tests for both binaries
-# Kill leftover processes between runs to avoid port reuse races.
+# Run all tests
 # ---------------------------------------------------------------------------
 
 run_tests ./udp-redirect 0
-
-for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null || true; done
-PIDS=()
-sleep 0.5
-
-run_tests ./udp-redirect-rs/target/debug/udp-redirect-rs 100
 
 # --- Results ---
 echo ""
