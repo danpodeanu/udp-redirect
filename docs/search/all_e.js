@@ -1,25 +1,8 @@
 var searchData=
 [
-  ['saddr_0',['saddr',['../structsettings.html#ab0ae900aaaa17fc9a66df172ee8ae102',1,'settings']]],
-  ['security_1',['Security',['../md__r_e_a_d_m_e.html#autotoc_md2',1,'']]],
-  ['security_2',['Listener security',['../md__r_e_a_d_m_e.html#autotoc_md10',1,'']]],
-  ['security_20policy_3',['Security Policy',['../md__s_e_c_u_r_i_t_y.html',1,'']]],
-  ['security_2emd_4',['SECURITY.md',['../_s_e_c_u_r_i_t_y_8md.html',1,'']]],
-  ['sender_5',['Sender',['../md__r_e_a_d_m_e.html#autotoc_md9',1,'']]],
-  ['set_5frcvtimeo_6',['set_rcvtimeo',['../udp-redirect-test_8c.html#adcb3c56c08e9dce60da3aeed6881b8b9',1,'udp-redirect-test.c']]],
-  ['settings_7',['settings',['../structsettings.html',1,'']]],
-  ['settings_5finitialize_8',['settings_initialize',['../udp-redirect_8c.html#a7a34b83efc5dbf0c7a938d9f07fdbccb',1,'udp-redirect.c']]],
-  ['sif_9',['sif',['../structsettings.html#aca05989209d3cb086986065afacf88b6',1,'settings']]],
-  ['socket_5fsetup_10',['socket_setup',['../udp-redirect_8c.html#a7c1968beedd58e96bd5883c5ee476fc5',1,'udp-redirect.c']]],
-  ['sport_11',['sport',['../structsettings.html#a6144aeafdfb423cabed5f69eb96eb300',1,'settings']]],
-  ['statistics_12',['statistics',['../structstatistics.html',1,'']]],
-  ['statistics_5fdelay_5fseconds_13',['STATISTICS_DELAY_SECONDS',['../udp-redirect_8c.html#aa1a29c97612ba647f485fae49439e74f',1,'udp-redirect.c']]],
-  ['statistics_5fdisplay_14',['statistics_display',['../udp-redirect_8c.html#af333d2c7ec6c46fdf5ba1ede197c9fc4',1,'udp-redirect.c']]],
-  ['statistics_5finitialize_15',['statistics_initialize',['../udp-redirect_8c.html#af6d101333c4654c64f400cedab535cbe',1,'udp-redirect.c']]],
-  ['stats_16',['stats',['../structsettings.html#a75f657baf41d582a2481708f1e89e135',1,'settings']]],
-  ['strsim_2d0d85c246fae23fcd_2ed_17',['strsim-0d85c246fae23fcd.d',['../strsim-0d85c246fae23fcd_8d.html',1,'']]],
-  ['strsim_2de4560fc19ce47e68_2ed_18',['strsim-e4560fc19ce47e68.d',['../strsim-e4560fc19ce47e68_8d.html',1,'']]],
-  ['supported_20versions_19',['Supported Versions',['../md__s_e_c_u_r_i_t_y.html#autotoc_md13',1,'']]],
-  ['syn_2dd8e434c3833ec990_2ed_20',['syn-d8e434c3833ec990.d',['../syn-d8e434c3833ec990_8d.html',1,'']]],
-  ['syn_2ded0b8beceb035a68_2ed_21',['syn-ed0b8beceb035a68.d',['../syn-ed0b8beceb035a68_8d.html',1,'']]]
+  ['udp_20redirect_0',['udp-redirect',['../md__r_e_a_d_m_e.html',1,'']]],
+  ['udp_2dredirect_2dtest_2ec_1',['udp-redirect-test.c',['../udp-redirect-test_8c.html',1,'']]],
+  ['udp_2dredirect_2ec_2',['udp-redirect.c',['../udp-redirect_8c.html',1,'']]],
+  ['udp_5fredirect_5fversion_3',['UDP_REDIRECT_VERSION',['../udp-redirect_8c.html#ada596d113080b14fcf0680f118baf602',1,'udp-redirect.c']]],
+  ['usage_4',['usage',['../udp-redirect_8c.html#ae9a2954f00e12c29eff4ffd4e47f6d32',1,'udp-redirect.c']]]
 ];

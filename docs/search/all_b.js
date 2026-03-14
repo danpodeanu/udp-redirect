@@ -1,8 +1,8 @@
 var searchData=
 [
-  ['parse_5faddr_0',['parse_addr',['../udp-redirect_8c.html#af2cb511930c9148f40f92ccbd3a6d127',1,'udp-redirect.c']]],
-  ['parse_5fport_1',['PARSE_PORT',['../udp-redirect_8c.html#a0dad44b7bc42ceffe7da02c4d30d7b92',1,'udp-redirect.c']]],
-  ['policy_2',['Security Policy',['../md__s_e_c_u_r_i_t_y.html',1,'']]],
-  ['proc_5fmacro2_2db5d907ad29a87c00_2ed_3',['proc_macro2-b5d907ad29a87c00.d',['../proc__macro2-b5d907ad29a87c00_8d.html',1,'']]],
-  ['proc_5fmacro2_2df0a483da40634cd9_2ed_4',['proc_macro2-f0a483da40634cd9.d',['../proc__macro2-f0a483da40634cd9_8d.html',1,'']]]
+  ['readme_2emd_0',['README.md',['../_r_e_a_d_m_e_8md.html',1,'']]],
+  ['redirect_1',['udp-redirect',['../md__r_e_a_d_m_e.html',1,'']]],
+  ['reporting_20a_20vulnerability_2',['Reporting a Vulnerability',['../md__s_e_c_u_r_i_t_y.html#autotoc_md14',1,'']]],
+  ['resolve_5fhost_3',['resolve_host',['../udp-redirect_8c.html#a7c3601d895a43fbb827bff4f7332807d',1,'udp-redirect.c']]],
+  ['run_4',['Run',['../md__r_e_a_d_m_e.html#autotoc_md4',1,'']]]
 ];
