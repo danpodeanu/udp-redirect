@@ -92,7 +92,7 @@ $(function(){initNavTree('md__r_e_a_d_m_e.html','',''); });
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p><a class="anchor" id="autotoc_md0"></a></p>
-<p>A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6. Tested on Linux x64 and MacOS / Darwin arm64.</p>
+<p>A simple yet flexible and very fast UDP redirector. Supports IPv4 and IPv6, including cross-family forwarding (IPv4 &lt;-&gt; IPv6). Tested on Linux x64 and MacOS / Darwin arm64.</p>
 <p>Useful for redirecting UDP traffic (e.g., Wireguard VPN, DNS, etc.) when doing it at a different layer (e.g., from a firewall) is difficult. Does not modify the redirected packets.</p>
 <p>Single file source code for convenience. Offers both C and Rust versions.</p>
 <p><img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/c-cpp.yml/badge.svg" alt="C CI" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/rust.yml/badge.svg" alt="Rust CI" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" style="pointer-events: none;" class="inline"/> <img src="https://github.com/danpodeanu/udp-redirect/actions/workflows/docs.yml/badge.svg" alt="Docs" style="pointer-events: none;" class="inline"/> <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html"><img src="https://img.shields.io/badge/License-GPL_v2-blue.svg" alt="License: GPL v2" style="pointer-events: none;" class="inline"/></a></p>
@@ -121,6 +121,13 @@ Run</h2>
 <div class="line">        --connect-address-strict \</div>
 <div class="line">    --send-interface utun5 \</div>
 <div class="line">    --listen-sender-address 192.168.1.1 --listen-sender-port 51820</div>
+</div><!-- fragment --><p>Cross-family forwarding is supported: the listen and connect sockets use independent address families, determined by <span class="tt">--listen-address</span> and <span class="tt">--connect-address</span> respectively.</p>
+<p>Receive IPv4 packets and forward to an IPv6 backend: </p><div class="fragment"><div class="line">./udp-redirect \</div>
+<div class="line">    --listen-address 0.0.0.0 --listen-port 51821 \</div>
+<div class="line">    --connect-address ::1 --connect-port 51822</div>
+</div><!-- fragment --><p>Receive IPv6 packets and forward to an IPv4 backend: </p><div class="fragment"><div class="line">./udp-redirect \</div>
+<div class="line">    --listen-address ::1 --listen-port 51821 \</div>
+<div class="line">    --connect-address 127.0.0.1 --connect-port 51822</div>
 </div><!-- fragment --><div class="fragment"><div class="line">graph TD</div>
 <div class="line">    A[&quot;--------------------&lt;br/&gt;Wireguard Client&lt;br/&gt;--------------------&lt;br/&gt;Send from:&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.1&lt;br/&gt;Port: 51820&quot;] &lt;--&gt; B(&quot;--------------------&lt;br/&gt;UDP Redirector&lt;br/&gt;--------------------&lt;br/&gt;Receive on:&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.32 (--listen-address) (optional)&lt;br/&gt;Port: 51821 (--listen-port)&lt;br/&gt;Interface: en0 (--listen-interface) (optional)&lt;br/&gt;---------------&lt;br/&gt;Receive from: (optional)&lt;br/&gt;---------------&lt;br/&gt;IP: 192.168.1.1 (--listen-sender-address) (optional)&lt;br/&gt;Port: 51820 (--listen-sender-port) (optional)&lt;br/&gt;Only receive from Wireguard Client (--listen-address-strict) (optional)&lt;br/&gt;---------------&lt;br/&gt;Send to:&lt;br/&gt;---------------&lt;br/&gt;Host: example.endpoint.net (--connect-host)&lt;/br&gt;Port: 51822 (--connect-port)&lt;br/&gt;Only receive from Wireguard Server (--connect-address-strict) (optional)&lt;br/&gt;---------------&lt;br/&gt;Send from:&lt;br/&gt;---------------&lt;br/&gt;Interface: utun5 (--sender-interface) (optional)&lt;br/&gt;&lt;br/&gt;&quot;)</div>
 <div class="line">    B &lt;--&gt; C[&quot;--------------------&lt;br/&gt;Wireguard Server&lt;br/&gt;--------------------&lt;br/&gt;Listen on:&lt;br/&gt;---------------&lt;br/&gt;Host: example.endpoint.net&lt;br/&gt;Port: 51822&quot;]</div>
