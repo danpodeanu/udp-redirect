@@ -161,6 +161,18 @@ run_tests() {
         && pass "$LABEL: --listen-sender-port without --listen-sender-address rejected" \
         || fail "$LABEL: --listen-sender-port without --listen-sender-address rejected"
 
+    "$BIN" --listen-port 1234 --connect-address ::1 --connect-port 1234 \
+        --send-address 127.0.0.1 2>/dev/null
+    [ $? -ne 0 ] \
+        && pass "$LABEL: --send-address IPv4 with --connect-address IPv6 rejected" \
+        || fail "$LABEL: --send-address IPv4 with --connect-address IPv6 rejected"
+
+    "$BIN" --listen-port 1234 --connect-address 127.0.0.1 --connect-port 1234 \
+        --send-address ::1 2>/dev/null
+    [ $? -ne 0 ] \
+        && pass "$LABEL: --send-address IPv6 with --connect-address IPv4 rejected" \
+        || fail "$LABEL: --send-address IPv6 with --connect-address IPv4 rejected"
+
     # --- Port validation ---
     echo "=== $LABEL: port validation ==="
     "$BIN" --listen-port abc --connect-address 127.0.0.1 --connect-port 1234 2>/dev/null
