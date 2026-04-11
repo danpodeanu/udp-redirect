@@ -13,17 +13,20 @@
  * @section DESCRIPTION
  *
  * A single-file, high-performance UDP packet redirector supporting IPv4 and
- * IPv6.  Useful when layer-level redirection (e.g., firewall rules) is
- * impractical — common use cases include Wireguard VPN, DNS, and game servers.
+ * IPv6, with configurable multi-client support (up to 10 simultaneous clients).
+ * Useful when layer-level redirection (e.g., firewall rules) is impractical —
+ * common use cases include Wireguard VPN, DNS, and game servers.
  *
  * Design overview:
- * - Two non-blocking UDP sockets: a *listen* socket (faces the local client)
- *   and a *send* socket (faces the remote endpoint).
+ * - One non-blocking UDP *listen* socket faces local clients.
+ * - Each active client gets its own non-blocking UDP *send* socket with a
+ *   unique source port, enabling proper response routing.
  * - A poll(2)-based main loop with a 1-second timeout drives all I/O; no
  *   threads or dynamic allocation occur inside the loop.
- * - Packets arriving on the listen socket are forwarded to the connect
- *   endpoint; replies arriving on the send socket are forwarded back to the
- *   most-recently-seen listen-side source.
+ * - Packets arriving on the listen socket are forwarded via the client's
+ *   dedicated send socket; replies arriving on a send socket are forwarded
+ *   back to that specific client.
+ * - Inactive clients are cleaned up after a configurable timeout.
  * - Optional strict-mode flags limit which sources are accepted on each side.
  * - Optional 60-second windowed statistics are printed to stderr.
  *
@@ -45,6 +48,7 @@
 #include <math.h>
 #include <netdb.h>
 #include <time.h>
+#include <unistd.h>
 
 /**
  * The udp-redirect version
@@ -60,6 +64,27 @@
  * The size of the network buffer used for receiving / sending packets
  */
 #define NETWORK_BUFFER_SIZE    65535
+
+/**
+ * The maximum number of simultaneous clients supported
+ */
+#define MAX_CLIENTS    10
+
+/**
+ * Client session timeout in seconds (remove inactive clients after this time)
+ */
+#define CLIENT_TIMEOUT_SECONDS    30
+
+/**
+ * Default interval in seconds for re-resolving the connect address (0 = disabled)
+ */
+#define CONNECT_RESOLVE_INTERVAL_SECONDS    60
+
+/**
+ * WireGuard handshake initiation packet constants
+ */
+#define WIREGUARD_HANDSHAKE_INIT_TYPE     1
+#define WIREGUARD_HANDSHAKE_INIT_SIZE     148
 
 /**
  * @brief Readability: errno value for OK.
@@ -129,6 +154,17 @@ enum DEBUG_LEVEL {
         } while (0)
 
 /**
+ * Structure to track each individual client session.
+ */
+struct client_session {
+    struct sockaddr_storage endpoint;      ///< Client's address and port
+    int send_sock;                         ///< Dedicated send socket for this client
+    struct sockaddr_storage send_sock_name;///< Name of the send socket
+    time_t last_seen;                      ///< Last packet received time
+    int active;                            ///< 1 if this slot is in use, 0 if free
+};
+
+/**
  * Command line options.
  */
 static struct option longopts[] = {
@@ -157,6 +193,12 @@ static struct option longopts[] = {
     { "stop-errors",           no_argument,            NULL,           's' }, ///< Do NOT ignore harmless recvfrom / sendto errors
 
     { "stats",                 no_argument,            NULL,           'q' }, ///< Display stats every 60 seconds
+
+    { "max-clients",           required_argument,      NULL,           't' }, ///< Maximum number of simultaneous clients (1-10)
+
+    { "wireguard-only",        no_argument,            NULL,           'w' }, ///< Only accept WireGuard handshake initiation packets
+
+    { "connect-resolve-interval", required_argument,  NULL,           'u' }, ///< Re-resolve connect address every N seconds
 
     { "version",               no_argument,            NULL,           'z' }, ///< Display the version
 
@@ -188,6 +230,12 @@ struct settings {
     int eignore;        ///< Ignore most recvfrom / sendto errors
 
     int stats;          ///< Display stats every 60 seconds
+    
+    int max_clients;    ///< Maximum number of simultaneous clients (1-10)
+    
+    int wg_only;        ///< Only accept WireGuard handshake initiation packets
+    
+    int cresolve_interval; ///< Re-resolve connect address every N seconds (0 = disabled)
 };
 
 /**
@@ -237,6 +285,15 @@ static int addr_port(const struct sockaddr_storage *sa);
 static socklen_t addr_len(const struct sockaddr_storage *sa);
 static int addr_is_unset(const struct sockaddr_storage *sa);
 static int addr_equal(const struct sockaddr_storage *a, const struct sockaddr_storage *b);
+static int is_wireguard_handshake_init(const char *buffer, ssize_t len);
+
+void client_sessions_initialize(struct client_session *clients, int max_clients);
+int client_find_or_create(const int debug_level, struct client_session *clients, int max_clients,
+                          const struct sockaddr_storage *endpoint, time_t now,
+                          const char *saddr, int sport, const char *sif, int family,
+                          const struct sockaddr_storage *caddr, int strict_mode);
+void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now);
+void client_sessions_cleanup(const int debug_level, struct client_session *clients, int max_clients);
 
 void settings_initialize(struct settings *s);
 void usage(const char *argv0, const char *message);
@@ -269,10 +326,8 @@ int main(int argc, char *argv[]) {
     time_t now;
 
     int lsock; /* Listen socket */
-    int ssock; /* Send socket */
 
     struct sockaddr_storage lsock_name; /* Listen socket name */
-    struct sockaddr_storage ssock_name; /* Send socket name */
 
     struct sockaddr_storage caddr; /* Connect address */
 
@@ -282,10 +337,7 @@ int main(int argc, char *argv[]) {
 
     static char network_buffer[NETWORK_BUFFER_SIZE]; /* The network buffer. All reads and writes happen here */
 
-    struct pollfd ufds[2]; /* Poll file descriptors */
-
     struct sockaddr_storage endpoint; /* Address where the current packet was received from */
-    struct sockaddr_storage previous_endpoint; /* Address where the previous packet was received from */
 
     unsigned char errno_ignore[MAX_ERRNO];
 
@@ -370,6 +422,26 @@ int main(int argc, char *argv[]) {
                 s.stats = 1;
 
                 break;
+            case 't': /* --max-clients */
+                PARSE_PORT(optarg, s.max_clients, "max-clients");
+                if (s.max_clients < 1 || s.max_clients > MAX_CLIENTS) {
+                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "max-clients must be between 1 and %d", MAX_CLIENTS);
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
+            case 'w': /* --wireguard-only */
+                s.wg_only = 1;
+
+                break;
+            case 'u': /* --connect-resolve-interval */
+                PARSE_PORT(optarg, s.cresolve_interval, "connect-resolve-interval");
+                if (s.cresolve_interval < 0) {
+                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "connect-resolve-interval must be >= 0");
+                    exit(EXIT_FAILURE);
+                }
+
+                break;
             case 'z': /* --version */
                 fprintf(stderr, "udp-redirect v%s\n", UDP_REDIRECT_VERSION);
                 exit(EXIT_SUCCESS);
@@ -452,6 +524,13 @@ int main(int argc, char *argv[]) {
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Ignore errors: %s", s.eignore?"ENABLED":"DISABLED");
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Display stats: %s", s.stats?"ENABLED":"DISABLED");
+    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Max clients: %d", s.max_clients);
+    DEBUG(debug_level, DEBUG_LEVEL_INFO, "WireGuard only: %s", s.wg_only?"ENABLED":"DISABLED");
+    if (s.cresolve_interval > 0) {
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Connect resolve interval: %d seconds", s.cresolve_interval);
+    } else {
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Connect resolve interval: DISABLED");
+    }
 
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "---- START ----");
 
@@ -464,10 +543,25 @@ int main(int argc, char *argv[]) {
         }
         exit(EXIT_FAILURE);
     }
+    
+    /* Save the original hostname for periodic re-resolution (if using --connect-host) */
+    char *connect_hostname = NULL;
+    if (s.chost != NULL && s.cresolve_interval > 0) {
+        if ((connect_hostname = strdup(s.chost)) == NULL) {
+            perror("strdup");
+            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot allocate memory for hostname (%d)", errno);
+            exit(EXIT_FAILURE);
+        }
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "Will re-resolve %s every %d seconds", connect_hostname, s.cresolve_interval);
+    }
+    
     if (caddr_alloc != NULL) {
         free(caddr_alloc);
         s.caddr = NULL;
     }
+    
+    /* Track last time we resolved the connect address */
+    time_t last_resolve_time = time(NULL);
 
     /* Determine listen socket family independently from the connect family.
      * When --listen-address is given its family drives lsock, enabling
@@ -504,21 +598,22 @@ int main(int argc, char *argv[]) {
     }
 
     lsock = socket_setup(debug_level, "Listen", s.laddr, s.lport, s.lif, lsock_family, &lsock_name); /* Set up listening socket */
-    ssock = socket_setup(debug_level, "Send", s.saddr, s.sport, s.sif, (int)caddr.ss_family, &ssock_name); /* Set up send socket */
 
-    memset(&endpoint, 0, sizeof(endpoint)); /* No packet received, no endpoint */
+    /* Initialize client sessions */
+    struct client_session clients[MAX_CLIENTS];
+    client_sessions_initialize(clients, MAX_CLIENTS);
 
-    /* previous_endpoint: ss_family == 0 (zero-init) means "no endpoint seen yet" */
-    memset(&previous_endpoint, 0, sizeof(previous_endpoint));
+    /* Handle listen-sender-address restriction if specified */
+    struct sockaddr_storage allowed_sender;
+    memset(&allowed_sender, 0, sizeof(allowed_sender));
+    int has_allowed_sender = 0;
     if (s.lsaddr != NULL && s.lsport != 0) {
-        if (parse_addr(s.lsaddr, s.lsport, &previous_endpoint) == -1) {
+        if (parse_addr(s.lsaddr, s.lsport, &allowed_sender) == -1) {
             DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Invalid listen sender address: %s", s.lsaddr);
-
             exit(EXIT_FAILURE);
         }
+        has_allowed_sender = 1;
     }
-
-    socklen_t endpoint_len = sizeof(endpoint);
 
     ERRNO_IGNORE_INIT(errno_ignore);
     ERRNO_IGNORE_SET(errno_ignore, EINTR); /* Always ignore EINTR */
@@ -542,20 +637,73 @@ int main(int argc, char *argv[]) {
         int poll_retval;
         ssize_t recvfrom_retval;
         ssize_t sendto_retval;
+        int i, nfds;
 
         now = time(NULL);
 
-        ufds[0].fd = lsock; ufds[0].events = POLLIN | POLLPRI; ufds[0].revents = 0;
-        ufds[1].fd = ssock; ufds[1].events = POLLIN | POLLPRI; ufds[1].revents = 0;
+        /* Clean up inactive clients periodically */
+        client_cleanup_inactive(debug_level, clients, s.max_clients, now);
 
-        DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "waiting for readable sockets");
+        /* Periodically re-resolve connect address if using a hostname */
+        if (connect_hostname != NULL && s.cresolve_interval > 0 &&
+            (now - last_resolve_time) >= s.cresolve_interval) {
+            
+            char *new_addr = resolve_host(debug_level, connect_hostname);
+            struct sockaddr_storage new_caddr;
+            
+            if (parse_addr(new_addr, s.cport, &new_caddr) != -1) {
+                /* Check if the IP has changed */
+                if (!addr_equal(&caddr, &new_caddr)) {
+                    /* IP has changed - update it */
+                    char old_ip[INET6_ADDRSTRLEN];
+                    char new_ip[INET6_ADDRSTRLEN];
+                    addr_tostring(&caddr, old_ip, sizeof(old_ip));
+                    addr_tostring(&new_caddr, new_ip, sizeof(new_ip));
+                    
+                    fprintf(stderr, "Connect address changed: %s:%d -> %s:%d\n",
+                            old_ip, addr_port(&caddr),
+                            new_ip, addr_port(&new_caddr));
+                    
+                    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Re-resolved %s: %s -> %s",
+                          connect_hostname, old_ip, new_ip);
+                    
+                    memcpy(&caddr, &new_caddr, sizeof(caddr));
+                } else {
+                    DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "Re-resolved %s: address unchanged (%s)",
+                          connect_hostname, new_addr);
+                }
+            } else {
+                DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Failed to parse re-resolved address: %s", new_addr);
+            }
+            
+            free(new_addr);
+            last_resolve_time = now;
+        }
+
+        /* Set up poll file descriptors: listen socket + all active client sockets */
+        struct pollfd ufds[MAX_CLIENTS + 1];
+        ufds[0].fd = lsock;
+        ufds[0].events = POLLIN | POLLPRI;
+        ufds[0].revents = 0;
+        nfds = 1;
+
+        for (i = 0; i < s.max_clients; i++) {
+            if (clients[i].active) {
+                ufds[nfds].fd = clients[i].send_sock;
+                ufds[nfds].events = POLLIN | POLLPRI;
+                ufds[nfds].revents = 0;
+                nfds++;
+            }
+        }
+
+        DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "waiting for readable sockets (listen + %d clients)", nfds - 1);
 
         if (s.stats && (now - st.time_display_last) >= STATISTICS_DELAY_SECONDS) {
             statistics_display(debug_level, &st, now);
             st.time_display_last = now;
         }
 
-        if ((poll_retval = poll(ufds, 2, 1000)) == -1) {
+        if ((poll_retval = poll(ufds, nfds, 1000)) == -1) {
             if (errno == EINTR) {
                 continue;
             }
@@ -572,7 +720,7 @@ int main(int argc, char *argv[]) {
 
         /* New data on the LISTEN socket */
         if (ufds[0].revents & POLLIN || ufds[0].revents & POLLPRI) {
-            endpoint_len = sizeof(endpoint);
+            socklen_t endpoint_len = sizeof(endpoint);
             if ((recvfrom_retval = recvfrom(lsock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, &endpoint_len)) == -1) {
                 if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
@@ -591,57 +739,88 @@ int main(int argc, char *argv[]) {
                         addr_tostring(&lsock_name, print_buffer2, sizeof(print_buffer2)), addr_port(&lsock_name),
                         recvfrom_retval);
 
-                /** Accept the packet IF:
-                  * - There's no previous endpoint, OR
-                  * - There is a previous endpoint, but we are not in strict mode, OR
-                  * - The previous endpoint matches the current endpoint
-                */
-                if ((addr_is_unset(&previous_endpoint) || !s.lstrict) ||
-                        addr_equal(&previous_endpoint, &endpoint)) {
-
-                    if (addr_is_unset(&previous_endpoint) || !s.lstrict) {
-                        if (!addr_equal(&previous_endpoint, &endpoint)) {
-                            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "LISTEN remote endpoint set to (%s, %d)", addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
-                        }
-
-                        memcpy(&previous_endpoint, &endpoint, sizeof(endpoint));
-                    }
-
-                    if ((sendto_retval = sendto(ssock, network_buffer, recvfrom_retval, 0,
-                                    (struct sockaddr *)&caddr, addr_len(&caddr))) == -1) {
-                        if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
-                            perror("sendto");
-                            DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot send packet to send port (%d)", errno);
-
-                            exit(EXIT_FAILURE);
-                        }
-                    } else { // At least one byte was sent, record it
-                        st.count_connect_packet_send++;
-                        st.count_connect_byte_send += sendto_retval;
-                    }
-
-                    DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
-                            "SEND (%s, %d) -> (%s, %d) (SEND PORT): %zd bytes (%s WRITE %zd bytes)",
-                            addr_tostring(&ssock_name, print_buffer1, sizeof(print_buffer1)), addr_port(&ssock_name),
-                            addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr),
-                            sendto_retval,
-                            (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
-                } else {
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "LISTEN PORT invalid source (%s, %d), was expecting (%s, %d)",
+                /* Check if sender is allowed (if restriction is set) */
+                if (has_allowed_sender && !addr_equal(&allowed_sender, &endpoint)) {
+                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "LISTEN PORT rejected packet from (%s, %d), only accepting from (%s, %d)",
                             addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
-                            addr_tostring(&previous_endpoint, print_buffer2, sizeof(print_buffer2)), addr_port(&previous_endpoint));
+                            addr_tostring(&allowed_sender, print_buffer2, sizeof(print_buffer2)), addr_port(&allowed_sender));
+                } else {
+                    /* Check if this is a new client and WireGuard-only mode is enabled */
+                    int is_new_client = 1;
+                    for (i = 0; i < s.max_clients; i++) {
+                        if (clients[i].active && addr_equal(&clients[i].endpoint, &endpoint)) {
+                            is_new_client = 0;
+                            break;
+                        }
+                    }
+
+                    /* Validate WireGuard handshake initiation for new clients if required */
+                    if (s.wg_only && is_new_client && !is_wireguard_handshake_init(network_buffer, recvfrom_retval)) {
+                        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "LISTEN PORT rejected non-WireGuard packet from new client (%s, %d)",
+                                addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
+                    } else {
+                        /* Find or create client session for this endpoint */
+                        int client_idx = client_find_or_create(debug_level, clients, s.max_clients,
+                                                               &endpoint, now,
+                                                               s.saddr, s.sport, s.sif,
+                                                               (int)caddr.ss_family, &caddr, s.lstrict);
+
+                    if (client_idx == -1) {
+                        DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot create client session for (%s, %d) - max clients reached",
+                                addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
+                    } else {
+                        /* Forward packet to remote server via this client's send socket */
+                        if ((sendto_retval = sendto(clients[client_idx].send_sock, network_buffer, recvfrom_retval, 0,
+                                        (struct sockaddr *)&caddr, addr_len(&caddr))) == -1) {
+                            if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
+                                perror("sendto");
+                                DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot send packet to connect address (%d)", errno);
+
+                                exit(EXIT_FAILURE);
+                            }
+                        } else {
+                            st.count_connect_packet_send++;
+                            st.count_connect_byte_send += sendto_retval;
+
+                            DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
+                                    "SEND (%s, %d) -> (%s, %d) (CLIENT %d): %zd bytes (%s WRITE %zd bytes)",
+                                    addr_tostring(&clients[client_idx].send_sock_name, print_buffer1, sizeof(print_buffer1)), 
+                                    addr_port(&clients[client_idx].send_sock_name),
+                                    addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr),
+                                    client_idx,
+                                    sendto_retval,
+                                    (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
+                        }
+                    }
+                    }
                 }
             }
         }
 
-        /* New data on the SEND socket */
-        if (ufds[1].revents & POLLIN || ufds[1].revents & POLLPRI) {
-            endpoint_len = sizeof(endpoint);
-            if ((recvfrom_retval = recvfrom(ssock, network_buffer, sizeof(network_buffer), 0,
+        /* Check all client send sockets for responses from server */
+        for (i = 0; i < s.max_clients; i++) {
+            if (!clients[i].active)
+                continue;
+
+            /* Find this client's socket in the poll results */
+            int found = 0;
+            for (int j = 1; j < nfds; j++) {
+                if (ufds[j].fd == clients[i].send_sock && (ufds[j].revents & POLLIN || ufds[j].revents & POLLPRI)) {
+                    found = 1;
+                    break;
+                }
+            }
+
+            if (!found)
+                continue;
+
+            /* Receive data from server */
+            socklen_t endpoint_len = sizeof(endpoint);
+            if ((recvfrom_retval = recvfrom(clients[i].send_sock, network_buffer, sizeof(network_buffer), 0,
                             (struct sockaddr *)&endpoint, &endpoint_len)) == -1) {
                 if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                     perror("recvfrom");
-                    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Send cannot receive packet (%d)", errno);
+                    DEBUG(debug_level, DEBUG_LEVEL_INFO, "Client %d cannot receive packet (%d)", i, errno);
 
                     exit(EXIT_FAILURE);
                 }
@@ -650,48 +829,52 @@ int main(int argc, char *argv[]) {
                 st.count_connect_packet_receive++;
                 st.count_connect_byte_receive += recvfrom_retval;
 
-                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (SEND PORT): %zd bytes",
+                DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (CLIENT %d): %zd bytes",
                         addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
-                        addr_tostring(&ssock_name, print_buffer2, sizeof(print_buffer2)), addr_port(&ssock_name),
+                        addr_tostring(&clients[i].send_sock_name, print_buffer2, sizeof(print_buffer2)), 
+                        addr_port(&clients[i].send_sock_name),
+                        i,
                         recvfrom_retval);
 
-                /** Accept the packet IF:
-                  * - The listen socket has received a packet, so we know the endpoint, AND
-                  * - The packet was received from the connect endpoint, OR
-                  * - We are not in strict mode
-                  */
-                if (!addr_is_unset(&previous_endpoint) &&
-                        (!s.cstrict || addr_equal(&caddr, &endpoint))) {
-
+                /* Verify source if strict mode enabled */
+                if (s.cstrict && !addr_equal(&caddr, &endpoint)) {
+                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "CLIENT %d invalid source (%s, %d), was expecting (%s, %d)",
+                            i,
+                            addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
+                            addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr));
+                } else {
+                    /* Send response back to the client */
                     if ((sendto_retval = sendto(lsock, network_buffer, recvfrom_retval, 0,
-                                    (struct sockaddr *)&previous_endpoint, addr_len(&previous_endpoint))) == -1) {
+                                    (struct sockaddr *)&clients[i].endpoint, addr_len(&clients[i].endpoint))) == -1) {
                         if (!ERRNO_IGNORE_CHECK(errno_ignore, errno)) {
                             perror("sendto");
-                            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Cannot send packet to listen port (%d)", errno);
+                            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Cannot send packet back to client %d (%d)", i, errno);
 
                             exit(EXIT_FAILURE);
                         }
-                    } else { // At least one byte was sent, record it
+                    } else {
                         st.count_listen_packet_send++;
                         st.count_listen_byte_send += sendto_retval;
-                    }
 
-                    DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
-                            "SEND (%s, %d) -> (%s, %d) (LISTEN PORT): %zd bytes (%s WRITE %zd bytes)",
-                            addr_tostring(&lsock_name, print_buffer1, sizeof(print_buffer1)), addr_port(&lsock_name),
-                            addr_tostring(&previous_endpoint, print_buffer2, sizeof(print_buffer2)), addr_port(&previous_endpoint),
-                            sendto_retval,
-                            (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
-                } else {
-                    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "SEND PORT invalid source (%s, %d), was expecting (%s, %d)",
-                            addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
-                            addr_tostring(&caddr, print_buffer2, sizeof(print_buffer2)), addr_port(&caddr));
+                        DEBUG(debug_level, (sendto_retval == recvfrom_retval || s.eignore == 1)?DEBUG_LEVEL_DEBUG:DEBUG_LEVEL_ERROR,
+                                "SEND (%s, %d) -> (%s, %d) (LISTEN PORT to CLIENT %d): %zd bytes (%s WRITE %zd bytes)",
+                                addr_tostring(&lsock_name, print_buffer1, sizeof(print_buffer1)), addr_port(&lsock_name),
+                                addr_tostring(&clients[i].endpoint, print_buffer2, sizeof(print_buffer2)), 
+                                addr_port(&clients[i].endpoint),
+                                i,
+                                sendto_retval,
+                                (sendto_retval == recvfrom_retval)?"FULL":"PARTIAL", recvfrom_retval);
+                    }
                 }
             }
         }
     }
 
-    /* Never reached. */
+    /* Never reached, but clean up if we ever add a break */
+    client_sessions_cleanup(debug_level, clients, s.max_clients);
+    if (connect_hostname != NULL) {
+        free(connect_hostname);
+    }
     return 0;
 }
 
@@ -766,6 +949,28 @@ static socklen_t addr_len(const struct sockaddr_storage *sa) {
  */
 static int addr_is_unset(const struct sockaddr_storage *sa) {
     return sa->ss_family == 0;
+}
+
+/**
+ * Check if a packet is a WireGuard handshake initiation packet.
+ * WireGuard handshake initiation packets are exactly 148 bytes with:
+ * - Byte 0: 0x01 (message type)
+ * - Bytes 1-3: 0x00 0x00 0x00 (reserved)
+ * @param[in] buffer The packet buffer to check.
+ * @param[in] len The length of the packet.
+ * @return 1 if valid WireGuard handshake initiation, 0 otherwise.
+ */
+static int is_wireguard_handshake_init(const char *buffer, ssize_t len) {
+    if (len != WIREGUARD_HANDSHAKE_INIT_SIZE)
+        return 0;
+    
+    if ((unsigned char)buffer[0] != WIREGUARD_HANDSHAKE_INIT_TYPE)
+        return 0;
+    
+    if (buffer[1] != 0 || buffer[2] != 0 || buffer[3] != 0)
+        return 0;
+    
+    return 1;
 }
 
 /**
@@ -982,6 +1187,150 @@ static char *resolve_host(int debug_level, const char *host) {
     return retval;
 }
 
+/* Client session management functions below */
+
+/**
+ * Initialize all client sessions.
+ * @param[out] clients The client sessions array to initialize.
+ * @param[in] max_clients The maximum number of clients.
+ */
+void client_sessions_initialize(struct client_session *clients, int max_clients) {
+    int i;
+    for (i = 0; i < max_clients; i++) {
+        memset(&clients[i].endpoint, 0, sizeof(clients[i].endpoint));
+        clients[i].send_sock = -1;
+        memset(&clients[i].send_sock_name, 0, sizeof(clients[i].send_sock_name));
+        clients[i].last_seen = 0;
+        clients[i].active = 0;
+    }
+}
+
+/**
+ * Find an existing client session or create a new one.
+ * @param[in] debug_level The debug level for DEBUG() macro.
+ * @param[in,out] clients The client sessions array.
+ * @param[in] max_clients The maximum number of clients.
+ * @param[in] endpoint The client's endpoint address.
+ * @param[in] now The current time.
+ * @param[in] saddr Send address for the new socket (optional).
+ * @param[in] sport Send port for the new socket (optional).
+ * @param[in] sif Send interface for the new socket (optional).
+ * @param[in] family Address family (AF_INET or AF_INET6).
+ * @param[in] caddr Connect address (for debug messages).
+ * @param[in] strict_mode If 1, only allow the first client.
+ * @return Index of the client session, or -1 if max clients reached or rejected by strict mode.
+ */
+int client_find_or_create(const int debug_level, struct client_session *clients, int max_clients,
+                          const struct sockaddr_storage *endpoint, time_t now,
+                          const char *saddr, int sport, const char *sif, int family,
+                          const struct sockaddr_storage *caddr, int strict_mode) {
+    int i;
+    char print_buffer[INET6_ADDRSTRLEN];
+
+    /* First, try to find an existing session for this endpoint */
+    for (i = 0; i < max_clients; i++) {
+        if (clients[i].active && addr_equal(&clients[i].endpoint, endpoint)) {
+            clients[i].last_seen = now;
+            DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "Found existing client session %d for (%s, %d)",
+                    i, addr_tostring(endpoint, print_buffer, sizeof(print_buffer)), addr_port(endpoint));
+            return i;
+        }
+    }
+
+    /* In strict mode, if we already have a client, reject new ones */
+    if (strict_mode) {
+        for (i = 0; i < max_clients; i++) {
+            if (clients[i].active) {
+                DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Strict mode: rejecting new client (%s, %d), already locked to (%s, %d)",
+                        addr_tostring(endpoint, print_buffer, sizeof(print_buffer)), addr_port(endpoint),
+                        addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)), addr_port(&clients[i].endpoint));
+                return -1;
+            }
+        }
+    }
+
+    /* No existing session found, create a new one */
+    for (i = 0; i < max_clients; i++) {
+        if (!clients[i].active) {
+            /* Create send socket for this client */
+            clients[i].send_sock = socket_setup(debug_level, "Client send", saddr, sport, sif, family, &clients[i].send_sock_name);
+            
+            memcpy(&clients[i].endpoint, endpoint, sizeof(*endpoint));
+            clients[i].last_seen = now;
+            clients[i].active = 1;
+
+            /* Always print client connection events */
+            fprintf(stderr, "Client connected: session %d from %s:%d (socket %s:%d)\n",
+                    i,
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)), addr_port(&clients[i].endpoint),
+                    addr_tostring(&clients[i].send_sock_name, print_buffer, sizeof(print_buffer)), addr_port(&clients[i].send_sock_name));
+
+            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Created client session %d for (%s, %d), send socket (%s, %d)",
+                    i, 
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)), addr_port(&clients[i].endpoint),
+                    addr_tostring(&clients[i].send_sock_name, print_buffer, sizeof(print_buffer)), addr_port(&clients[i].send_sock_name));
+            return i;
+        }
+    }
+
+    /* All slots full */
+    DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot create client session - all %d slots in use", max_clients);
+    return -1;
+}
+
+/**
+ * Clean up inactive client sessions (timeout after CLIENT_TIMEOUT_SECONDS).
+ * @param[in] debug_level The debug level for DEBUG() macro.
+ * @param[in,out] clients The client sessions array.
+ * @param[in] max_clients The maximum number of clients.
+ * @param[in] now The current time.
+ */
+void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now) {
+    int i;
+    char print_buffer[INET6_ADDRSTRLEN];
+
+    for (i = 0; i < max_clients; i++) {
+        if (clients[i].active && (now - clients[i].last_seen) > CLIENT_TIMEOUT_SECONDS) {
+            /* Always print client disconnection events */
+            fprintf(stderr, "Client disconnected: session %d from %s:%d (inactive for %ld seconds)\n",
+                    i,
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)),
+                    addr_port(&clients[i].endpoint),
+                    (long)(now - clients[i].last_seen));
+
+            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Cleaning up inactive client session %d (%s, %d) - timeout after %ld seconds",
+                    i,
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)),
+                    addr_port(&clients[i].endpoint),
+                    (long)(now - clients[i].last_seen));
+
+            if (clients[i].send_sock != -1) {
+                close(clients[i].send_sock);
+                clients[i].send_sock = -1;
+            }
+            clients[i].active = 0;
+        }
+    }
+}
+
+/**
+ * Clean up all client sessions (called at shutdown).
+ * @param[in] debug_level The debug level for DEBUG() macro.
+ * @param[in,out] clients The client sessions array.
+ * @param[in] max_clients The maximum number of clients.
+ */
+void client_sessions_cleanup(const int debug_level, struct client_session *clients, int max_clients) {
+    int i;
+    for (i = 0; i < max_clients; i++) {
+        if (clients[i].active && clients[i].send_sock != -1) {
+            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Closing client session %d send socket", i);
+            close(clients[i].send_sock);
+            clients[i].send_sock = -1;
+        }
+        clients[i].active = 0;
+    }
+}
+
 /* Settings helper functions below */
 
 /**
@@ -1009,6 +1358,9 @@ void settings_initialize(struct settings *s) {
 
     s->eignore = 1;
     s->stats = 0;
+    s->max_clients = 1; /* Default to 1 client for backward compatibility */
+    s->wg_only = 0;
+    s->cresolve_interval = CONNECT_RESOLVE_INTERVAL_SECONDS; /* Default to 60 seconds */
 }
 
 /**
@@ -1029,9 +1381,13 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--listen-address-strict] [--connect-address-strict]\n");
     fprintf(stderr, "          [--listen-sender-address <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
-    fprintf(stderr, "          [--stats] [--verbose] [--debug] [--version]\n");
+    fprintf(stderr, "          [--stats] [--max-clients <num>] [--wireguard-only]\n");
+    fprintf(stderr, "          [--connect-resolve-interval <seconds>] [--verbose] [--debug] [--version]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--stats                                 Display sent/received bytes statistics every 60 seconds (optional)\n");
+    fprintf(stderr, "--max-clients <num>                     Maximum number of simultaneous clients (1-10, default: 1) (optional)\n");
+    fprintf(stderr, "--wireguard-only                        Only accept WireGuard handshake initiation packets from new clients (optional)\n");
+    fprintf(stderr, "--connect-resolve-interval <seconds>    Re-resolve connect address every N seconds (default: 60, 0 = disabled) (optional)\n");
     fprintf(stderr, "--verbose                               Verbose mode, can be specified multiple times (optional)\n");
     fprintf(stderr, "--debug                                 Debug mode (optional)\n");
     fprintf(stderr, "--version                               Display the version and exit\n");
@@ -1039,7 +1395,7 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "--listen-address <address>              Listen address, IPv4 or IPv6 (optional)\n");
     fprintf(stderr, "--listen-port <port>                    Listen port (required)\n");
     fprintf(stderr, "--listen-interface <interface>          Listen interface name (optional)\n");
-    fprintf(stderr, "--listen-address-strict                 Only receive packets from the same source as the first packet (optional)\n");
+    fprintf(stderr, "--listen-address-strict                 Only accept first client; reject all others (optional)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--connect-address <address>             Connect address, IPv4 or IPv6 (optional if --connect-host is specified)\n");
     fprintf(stderr, "--connect-host <hostname>               Connect host, overwrites --connect-address if both are specified (optional if --connect-address is specified)\n");
