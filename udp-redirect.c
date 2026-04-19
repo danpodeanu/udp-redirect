@@ -53,7 +53,7 @@
 /**
  * The udp-redirect version
  */
-#define UDP_REDIRECT_VERSION    "2.2.0"
+#define UDP_REDIRECT_VERSION    "2.3.1"
 
 /**
  * The delay in seconds between displaying statistics
@@ -85,6 +85,14 @@
  */
 #define WIREGUARD_HANDSHAKE_INIT_TYPE     1
 #define WIREGUARD_HANDSHAKE_INIT_SIZE     148
+
+/**
+ * WireGuard transport data packet constants.
+ * Used by roaming clients: when a peer changes IP/port it sends a transport
+ * data packet (type 4) from the new address before re-initiating a handshake.
+ */
+#define WIREGUARD_TRANSPORT_DATA_TYPE     4
+#define WIREGUARD_TRANSPORT_DATA_MIN_SIZE 32  /* 1 type + 3 reserved + 4 receiver + 8 counter + 16 AEAD tag */
 
 /**
  * @brief Readability: errno value for OK.
@@ -162,6 +170,8 @@ struct client_session {
     struct sockaddr_storage send_sock_name;///< Name of the send socket
     time_t last_seen;                      ///< Last packet received time
     int active;                            ///< 1 if this slot is in use, 0 if free
+    int wg_pending;                        ///< 1 if waiting for WireGuard handshake reply from server
+    time_t wg_pending_since;               ///< Time the first WireGuard handshake was forwarded upstream
 };
 
 /**
@@ -197,6 +207,7 @@ static struct option longopts[] = {
     { "max-clients",           required_argument,      NULL,           't' }, ///< Maximum number of simultaneous clients (1-10)
 
     { "wireguard-only",        no_argument,            NULL,           'w' }, ///< Only accept WireGuard handshake initiation packets
+    { "wireguard-timeout",     required_argument,      NULL,           'p' }, ///< Drop WireGuard clients with no server reply after N seconds (0 = disabled)
 
     { "connect-resolve-interval", required_argument,  NULL,           'u' }, ///< Re-resolve connect address every N seconds
 
@@ -234,7 +245,8 @@ struct settings {
     int max_clients;    ///< Maximum number of simultaneous clients (1-10)
     
     int wg_only;        ///< Only accept WireGuard handshake initiation packets
-    
+    int wg_timeout;     ///< Drop WireGuard clients with no server reply after N seconds (0 = disabled)
+
     int cresolve_interval; ///< Re-resolve connect address every N seconds (0 = disabled)
 };
 
@@ -286,13 +298,15 @@ static socklen_t addr_len(const struct sockaddr_storage *sa);
 static int addr_is_unset(const struct sockaddr_storage *sa);
 static int addr_equal(const struct sockaddr_storage *a, const struct sockaddr_storage *b);
 static int is_wireguard_handshake_init(const char *buffer, ssize_t len);
+static int is_wireguard_transport_data(const char *buffer, ssize_t len);
+static int is_wireguard_packet(const char *buffer, ssize_t len);
 
 void client_sessions_initialize(struct client_session *clients, int max_clients);
 int client_find_or_create(const int debug_level, struct client_session *clients, int max_clients,
                           const struct sockaddr_storage *endpoint, time_t now,
                           const char *saddr, int sport, const char *sif, int family,
                           const struct sockaddr_storage *caddr, int strict_mode);
-void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now);
+void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now, int wg_timeout);
 void client_sessions_cleanup(const int debug_level, struct client_session *clients, int max_clients);
 
 void settings_initialize(struct settings *s);
@@ -434,6 +448,10 @@ int main(int argc, char *argv[]) {
                 s.wg_only = 1;
 
                 break;
+            case 'p': /* --wireguard-timeout */
+                PARSE_PORT(optarg, s.wg_timeout, "wireguard-timeout");
+
+                break;
             case 'u': /* --connect-resolve-interval */
                 PARSE_PORT(optarg, s.cresolve_interval, "connect-resolve-interval");
                 if (s.cresolve_interval < 0) {
@@ -526,6 +544,11 @@ int main(int argc, char *argv[]) {
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Display stats: %s", s.stats?"ENABLED":"DISABLED");
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "Max clients: %d", s.max_clients);
     DEBUG(debug_level, DEBUG_LEVEL_INFO, "WireGuard only: %s", s.wg_only?"ENABLED":"DISABLED");
+    if (s.wg_timeout > 0) {
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "WireGuard no-reply timeout: %d seconds", s.wg_timeout);
+    } else {
+        DEBUG(debug_level, DEBUG_LEVEL_INFO, "WireGuard no-reply timeout: DISABLED");
+    }
     if (s.cresolve_interval > 0) {
         DEBUG(debug_level, DEBUG_LEVEL_INFO, "Connect resolve interval: %d seconds", s.cresolve_interval);
     } else {
@@ -642,7 +665,7 @@ int main(int argc, char *argv[]) {
         now = time(NULL);
 
         /* Clean up inactive clients periodically */
-        client_cleanup_inactive(debug_level, clients, s.max_clients, now);
+        client_cleanup_inactive(debug_level, clients, s.max_clients, now, s.wg_timeout);
 
         /* Periodically re-resolve connect address if using a hostname */
         if (connect_hostname != NULL && s.cresolve_interval > 0 &&
@@ -754,8 +777,10 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    /* Validate WireGuard handshake initiation for new clients if required */
-                    if (s.wg_only && is_new_client && !is_wireguard_handshake_init(network_buffer, recvfrom_retval)) {
+                    /* Validate WireGuard packet for new clients if required.
+                     * Accept both handshake init (type 1) and transport data (type 4):
+                     * type 4 is sent by roaming clients that switch networks mid-session. */
+                    if (s.wg_only && is_new_client && !is_wireguard_packet(network_buffer, recvfrom_retval)) {
                         DEBUG(debug_level, DEBUG_LEVEL_ERROR, "LISTEN PORT rejected non-WireGuard packet from new client (%s, %d)",
                                 addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
                     } else {
@@ -769,6 +794,16 @@ int main(int argc, char *argv[]) {
                         DEBUG(debug_level, DEBUG_LEVEL_ERROR, "Cannot create client session for (%s, %d) - max clients reached",
                                 addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint));
                     } else {
+                        /* Mark WireGuard session as pending if timeout is configured and packet is a WG
+                         * handshake init (type 1) or transport data (type 4, roaming). In both cases
+                         * the server must reply within wg_timeout seconds or the session is dropped. */
+                        if (is_new_client && s.wg_timeout > 0 &&
+                                is_wireguard_packet(network_buffer, recvfrom_retval)) {
+                            clients[client_idx].wg_pending = 1;
+                            clients[client_idx].wg_pending_since = now;
+                            DEBUG(debug_level, DEBUG_LEVEL_VERBOSE, "CLIENT %d: WireGuard handshake pending, will drop if no server reply within %d seconds",
+                                  client_idx, s.wg_timeout);
+                        }
                         /* Forward packet to remote server via this client's send socket */
                         if ((sendto_retval = sendto(clients[client_idx].send_sock, network_buffer, recvfrom_retval, 0,
                                         (struct sockaddr *)&caddr, addr_len(&caddr))) == -1) {
@@ -828,6 +863,12 @@ int main(int argc, char *argv[]) {
             if (recvfrom_retval >= 0) {
                 st.count_connect_packet_receive++;
                 st.count_connect_byte_receive += recvfrom_retval;
+
+                /* Clear WireGuard handshake pending flag on first reply from server */
+                if (clients[i].wg_pending) {
+                    clients[i].wg_pending = 0;
+                    DEBUG(debug_level, DEBUG_LEVEL_VERBOSE, "CLIENT %d: WireGuard handshake confirmed by server reply", i);
+                }
 
                 DEBUG(debug_level, DEBUG_LEVEL_DEBUG, "RECEIVE (%s, %d) -> (%s, %d) (CLIENT %d): %zd bytes",
                         addr_tostring(&endpoint, print_buffer1, sizeof(print_buffer1)), addr_port(&endpoint),
@@ -971,6 +1012,46 @@ static int is_wireguard_handshake_init(const char *buffer, ssize_t len) {
         return 0;
     
     return 1;
+}
+
+/**
+ * Check if a packet is a WireGuard transport data packet (type 4).
+ * Sent by roaming peers when they switch networks without re-initiating a
+ * handshake.  The WireGuard server recognises the session from the receiver
+ * index embedded in the packet and updates the peer's endpoint automatically.
+ * Transport data packets are at least 32 bytes:
+ * - Byte 0: 0x04 (message type)
+ * - Bytes 1-3: 0x00 0x00 0x00 (reserved)
+ * - Bytes 4-7: receiver index (4 bytes, little-endian)
+ * - Bytes 8-15: counter (8 bytes, little-endian)
+ * - Bytes 16+: encrypted payload (at least 16 bytes for the AEAD tag)
+ * @param[in] buffer The packet buffer to check.
+ * @param[in] len The length of the packet.
+ * @return 1 if valid WireGuard transport data packet, 0 otherwise.
+ */
+static int is_wireguard_transport_data(const char *buffer, ssize_t len) {
+    if (len < WIREGUARD_TRANSPORT_DATA_MIN_SIZE)
+        return 0;
+    
+    if ((unsigned char)buffer[0] != WIREGUARD_TRANSPORT_DATA_TYPE)
+        return 0;
+    
+    if (buffer[1] != 0 || buffer[2] != 0 || buffer[3] != 0)
+        return 0;
+    
+    return 1;
+}
+
+/**
+ * Check if a packet looks like any valid WireGuard packet accepted from a new
+ * client: handshake initiation (type 1) or transport data (type 4, roaming).
+ * @param[in] buffer The packet buffer to check.
+ * @param[in] len The length of the packet.
+ * @return 1 if the packet is an accepted WireGuard packet type, 0 otherwise.
+ */
+static int is_wireguard_packet(const char *buffer, ssize_t len) {
+    return is_wireguard_handshake_init(buffer, len) ||
+           is_wireguard_transport_data(buffer, len);
 }
 
 /**
@@ -1202,6 +1283,8 @@ void client_sessions_initialize(struct client_session *clients, int max_clients)
         memset(&clients[i].send_sock_name, 0, sizeof(clients[i].send_sock_name));
         clients[i].last_seen = 0;
         clients[i].active = 0;
+        clients[i].wg_pending = 0;
+        clients[i].wg_pending_since = 0;
     }
 }
 
@@ -1258,6 +1341,8 @@ int client_find_or_create(const int debug_level, struct client_session *clients,
             memcpy(&clients[i].endpoint, endpoint, sizeof(*endpoint));
             clients[i].last_seen = now;
             clients[i].active = 1;
+            clients[i].wg_pending = 0;
+            clients[i].wg_pending_since = 0;
 
             /* Always print client connection events */
             fprintf(stderr, "Client connected: session %d from %s:%d (socket %s:%d)\n",
@@ -1284,13 +1369,42 @@ int client_find_or_create(const int debug_level, struct client_session *clients,
  * @param[in,out] clients The client sessions array.
  * @param[in] max_clients The maximum number of clients.
  * @param[in] now The current time.
+ * @param[in] wg_timeout Seconds to wait for WireGuard server reply before dropping client (0 = disabled).
  */
-void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now) {
+void client_cleanup_inactive(const int debug_level, struct client_session *clients, int max_clients, time_t now, int wg_timeout) {
     int i;
     char print_buffer[INET6_ADDRSTRLEN];
 
     for (i = 0; i < max_clients; i++) {
-        if (clients[i].active && (now - clients[i].last_seen) > CLIENT_TIMEOUT_SECONDS) {
+        if (!clients[i].active)
+            continue;
+
+        /* Drop WireGuard clients that never received a server reply within wg_timeout seconds */
+        if (wg_timeout > 0 && clients[i].wg_pending &&
+                (now - clients[i].wg_pending_since) >= (time_t)wg_timeout) {
+            fprintf(stderr, "Client dropped: session %d from %s:%d (WireGuard server did not reply within %d seconds)\n",
+                    i,
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)),
+                    addr_port(&clients[i].endpoint),
+                    wg_timeout);
+
+            DEBUG(debug_level, DEBUG_LEVEL_INFO, "Dropping client session %d (%s, %d) - WireGuard no-reply timeout (%d seconds)",
+                    i,
+                    addr_tostring(&clients[i].endpoint, print_buffer, sizeof(print_buffer)),
+                    addr_port(&clients[i].endpoint),
+                    wg_timeout);
+
+            if (clients[i].send_sock != -1) {
+                close(clients[i].send_sock);
+                clients[i].send_sock = -1;
+            }
+            clients[i].active = 0;
+            clients[i].wg_pending = 0;
+            continue;
+        }
+
+        /* Drop clients that have been inactive for CLIENT_TIMEOUT_SECONDS */
+        if ((now - clients[i].last_seen) > CLIENT_TIMEOUT_SECONDS) {
             /* Always print client disconnection events */
             fprintf(stderr, "Client disconnected: session %d from %s:%d (inactive for %ld seconds)\n",
                     i,
@@ -1360,6 +1474,7 @@ void settings_initialize(struct settings *s) {
     s->stats = 0;
     s->max_clients = 1; /* Default to 1 client for backward compatibility */
     s->wg_only = 0;
+    s->wg_timeout = 0;
     s->cresolve_interval = CONNECT_RESOLVE_INTERVAL_SECONDS; /* Default to 60 seconds */
 }
 
@@ -1381,12 +1496,13 @@ void usage(const char *argv0, const char *message) {
     fprintf(stderr, "          [--listen-address-strict] [--connect-address-strict]\n");
     fprintf(stderr, "          [--listen-sender-address <address>] [--listen-sender-port <port>]\n");
     fprintf(stderr, "          [--ignore-errors] [--stop-errors]\n");
-    fprintf(stderr, "          [--stats] [--max-clients <num>] [--wireguard-only]\n");
+    fprintf(stderr, "          [--stats] [--max-clients <num>] [--wireguard-only] [--wireguard-timeout <seconds>]\n");
     fprintf(stderr, "          [--connect-resolve-interval <seconds>] [--verbose] [--debug] [--version]\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--stats                                 Display sent/received bytes statistics every 60 seconds (optional)\n");
     fprintf(stderr, "--max-clients <num>                     Maximum number of simultaneous clients (1-10, default: 1) (optional)\n");
     fprintf(stderr, "--wireguard-only                        Only accept WireGuard handshake initiation packets from new clients (optional)\n");
+    fprintf(stderr, "--wireguard-timeout <seconds>           Drop clients that sent a WireGuard handshake but received no server reply within N seconds (0 = disabled, default: 0) (optional)\n");
     fprintf(stderr, "--connect-resolve-interval <seconds>    Re-resolve connect address every N seconds (default: 60, 0 = disabled) (optional)\n");
     fprintf(stderr, "--verbose                               Verbose mode, can be specified multiple times (optional)\n");
     fprintf(stderr, "--debug                                 Debug mode (optional)\n");
